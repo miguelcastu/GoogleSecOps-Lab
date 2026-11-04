@@ -1,0 +1,24 @@
+rule repeated_alt_port {
+  meta:
+    author = "GoogleSecOps-Lab"
+    rule_id = "GSL016"
+    description = "Repeated traffic to alternate C2 port"
+    severity = "MEDIUM"
+    mitre_attack = "T1571"
+    validation = "PENDING"
+
+  events:
+    $e.metadata.event_type = "NETWORK_CONNECTION"
+    $e.metadata.product_name = "FortiGate"
+    $e.target.port = 4444
+    $e.network.direction = "OUTBOUND"
+    $e.security_result.action = "ALLOW"
+    $key0 = $e.principal.ip
+    $key1 = $e.target.ip
+
+  match:
+    $key0, $key1 over 10m
+
+  condition:
+    #e >= 4
+}

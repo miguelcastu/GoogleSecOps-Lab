@@ -1,0 +1,18 @@
+rule aws_bucket_policy {
+  meta:
+    author = "GoogleSecOps-Lab"
+    rule_id = "GSL006"
+    description = "AWS bucket policy change"
+    severity = "MEDIUM"
+    mitre_attack = "T1530"
+    validation = "PENDING"
+
+  events:
+    $e.metadata.event_type = "RESOURCE_PERMISSIONS_CHANGE"
+    $e.metadata.product_name = "AWS CloudTrail"
+    $e.metadata.product_event_type = "PutBucketPolicy"
+    $e.security_result.action = "ALLOW"
+
+  condition:
+    $e
+}

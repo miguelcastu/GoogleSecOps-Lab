@@ -1,0 +1,262 @@
+[
+  {
+    "name": "iam_policy",
+    "rule": "GSL001",
+    "attack": [
+      "T1098"
+    ],
+    "description": "Policy updates can grant privilege or introduce new principals.",
+    "sources": [
+      "gcp_iam"
+    ],
+    "origin": "synthetic",
+    "investigate": "Baseline deployment identities and correlate the policy delta before escalation."
+  },
+  {
+    "name": "service_key",
+    "rule": "GSL002",
+    "attack": [
+      "T1098.001"
+    ],
+    "description": "New user-managed keys can provide durable access.",
+    "sources": [
+      "gcp_iam"
+    ],
+    "origin": "synthetic",
+    "investigate": "Allowlist documented exceptions and prefer workload identity."
+  },
+  {
+    "name": "sink",
+    "rule": "GSL003",
+    "attack": [
+      "T1562.008"
+    ],
+    "description": "Changing routing can hide future activity from security monitoring.",
+    "sources": [
+      "gcp_audit"
+    ],
+    "origin": "synthetic",
+    "investigate": "Review the destination and filter diff against change tickets."
+  },
+  {
+    "name": "firewall",
+    "rule": "GSL004",
+    "attack": [
+      "T1562.007"
+    ],
+    "description": "A rule change may widen the reachable network surface.",
+    "sources": [
+      "gcp_audit"
+    ],
+    "origin": "synthetic",
+    "investigate": "Review source ranges, target tags and change approvals."
+  },
+  {
+    "name": "aws_role",
+    "rule": "GSL005",
+    "attack": [
+      "T1098.003"
+    ],
+    "description": "A new policy attachment may expand the permissions of a role.",
+    "sources": [
+      "cloudtrail"
+    ],
+    "origin": "synthetic",
+    "investigate": "Compare against the AWS change record and inspect policy permissions."
+  },
+  {
+    "name": "aws_bucket",
+    "rule": "GSL006",
+    "attack": [
+      "T1530"
+    ],
+    "description": "A policy update can broaden object access.",
+    "sources": [
+      "cloudtrail"
+    ],
+    "origin": "synthetic",
+    "investigate": "Inspect the new policy and block-public-access configuration."
+  },
+  {
+    "name": "failures",
+    "rule": "GSL007",
+    "attack": [
+      "T1110.001"
+    ],
+    "description": "Repeated failures for one identity can indicate password guessing.",
+    "sources": [
+      "workspace",
+      "entra",
+      "windows",
+      "linux"
+    ],
+    "origin": "synthetic",
+    "investigate": "Baseline service identities and tune threshold by authentication provider."
+  },
+  {
+    "name": "spray",
+    "rule": "GSL008",
+    "attack": [
+      "T1110.003"
+    ],
+    "description": "One IP failing against multiple identities can indicate password spraying.",
+    "sources": [
+      "workspace",
+      "entra",
+      "windows",
+      "linux"
+    ],
+    "origin": "synthetic",
+    "investigate": "Baseline shared egress and require more distinct users in noisy segments."
+  },
+  {
+    "name": "fail_success",
+    "rule": "GSL009",
+    "attack": [
+      "T1110.001"
+    ],
+    "description": "A successful sign-in after repeated failures may indicate credential compromise.",
+    "sources": [
+      "workspace",
+      "entra",
+      "windows",
+      "linux"
+    ],
+    "origin": "synthetic",
+    "investigate": "Confirm device, MFA and source IP with the identity owner."
+  },
+  {
+    "name": "countries",
+    "rule": "GSL010",
+    "attack": [
+      "T1078"
+    ],
+    "description": "A principal signing in from different countries rapidly may indicate account misuse.",
+    "sources": [
+      "entra"
+    ],
+    "origin": "synthetic",
+    "investigate": "Use known VPN ranges and managed-device context."
+  },
+  {
+    "name": "powershell",
+    "rule": "GSL011",
+    "attack": [
+      "T1059.001"
+    ],
+    "description": "Encoded arguments can conceal a script payload.",
+    "sources": [
+      "sysmon",
+      "falcon"
+    ],
+    "origin": "synthetic",
+    "investigate": "Inspect the process tree and decode the payload offline."
+  },
+  {
+    "name": "office",
+    "rule": "GSL012",
+    "attack": [
+      "T1204.002"
+    ],
+    "description": "A shell launched by Office can indicate malicious document execution.",
+    "sources": [
+      "sysmon"
+    ],
+    "origin": "synthetic",
+    "investigate": "Check file provenance and allowlist signed workflow tools."
+  },
+  {
+    "name": "registry",
+    "rule": "GSL013",
+    "attack": [
+      "T1547.001"
+    ],
+    "description": "A Run key value can establish logon persistence.",
+    "sources": [
+      "sysmon"
+    ],
+    "origin": "synthetic",
+    "investigate": "Inspect the registry value, writing process and signer."
+  },
+  {
+    "name": "smb",
+    "rule": "GSL014",
+    "attack": [
+      "T1021.002"
+    ],
+    "description": "An endpoint reaching TCP/445 can indicate remote service activity.",
+    "sources": [
+      "sysmon"
+    ],
+    "origin": "synthetic",
+    "investigate": "Baseline approved file servers and verify destination and process."
+  },
+  {
+    "name": "long_dns",
+    "rule": "GSL015",
+    "attack": [
+      "T1071.004"
+    ],
+    "description": "Repeated long labels can carry encoded data.",
+    "sources": [
+      "dns"
+    ],
+    "origin": "synthetic",
+    "investigate": "Baseline domains and inspect entropy and query volume."
+  },
+  {
+    "name": "c2",
+    "rule": "GSL016",
+    "attack": [
+      "T1571"
+    ],
+    "description": "Repeated permitted outbound sessions to port 4444 warrant investigation.",
+    "sources": [
+      "fortigate"
+    ],
+    "origin": "synthetic",
+    "investigate": "Inspect destinations and baseline approved services. Check periodicity separately."
+  },
+  {
+    "name": "egress",
+    "rule": "GSL017",
+    "attack": [
+      "T1048"
+    ],
+    "description": "A single outbound session over 100 MiB can indicate bulk transfer.",
+    "sources": [
+      "fortigate"
+    ],
+    "origin": "synthetic",
+    "investigate": "Baseline traffic by source and destination. Verify whether data was authorized."
+  },
+  {
+    "name": "reads",
+    "rule": "GSL018",
+    "attack": [
+      "T1530"
+    ],
+    "description": "A burst of object reads by one identity may precede exfiltration.",
+    "sources": [
+      "gcp_audit",
+      "cloudtrail"
+    ],
+    "origin": "synthetic",
+    "investigate": "Tune to workload baselines and correlate with egress."
+  },
+  {
+    "name": "cross",
+    "rule": "GSL019",
+    "attack": [
+      "T1078"
+    ],
+    "description": "An authentication followed by a cloud policy update can reveal abuse of a federated identity.",
+    "sources": [
+      "entra",
+      "workspace",
+      "gcp_iam"
+    ],
+    "origin": "synthetic",
+    "investigate": "Match canonical identity across providers and check ticket, MFA and policy delta."
+  }
+]

@@ -1,0 +1,18 @@
+rule logging_sink_change {
+  meta:
+    author = "GoogleSecOps-Lab"
+    rule_id = "GSL003"
+    description = "Logging sink modification"
+    severity = "HIGH"
+    mitre_attack = "T1562.008"
+    validation = "PENDING"
+
+  events:
+    $e.metadata.event_type = "SETTING_MODIFICATION"
+    $e.metadata.product_name = "Cloud Audit Logs"
+    $e.metadata.product_event_type = /(?:^|[.])(?:UpdateSink|DeleteSink|CreateExclusion|UpdateExclusion)$/ nocase
+    $e.security_result.action = "ALLOW"
+
+  condition:
+    $e
+}

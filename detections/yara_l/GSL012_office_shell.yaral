@@ -1,0 +1,18 @@
+rule office_shell {
+  meta:
+    author = "GoogleSecOps-Lab"
+    rule_id = "GSL012"
+    description = "Office application spawning a shell"
+    severity = "HIGH"
+    mitre_attack = "T1204.002"
+    validation = "PENDING"
+
+  events:
+    $e.metadata.event_type = "PROCESS_LAUNCH"
+    $e.metadata.product_name = "Sysmon"
+    $e.principal.process.file.full_path = /(?:^|[\\\/])(?:winword|excel|powerpnt)[.]exe$/ nocase
+    $e.target.process.file.full_path = /(?:^|[\\\/])(?:cmd|powershell|pwsh|wscript)[.]exe$/ nocase
+
+  condition:
+    $e
+}

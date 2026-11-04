@@ -1,0 +1,17 @@
+rule smb_lateral {
+  meta:
+    author = "GoogleSecOps-Lab"
+    rule_id = "GSL014"
+    description = "Remote SMB connection"
+    severity = "MEDIUM"
+    mitre_attack = "T1021.002"
+    validation = "PENDING"
+
+  events:
+    $e.metadata.event_type = "NETWORK_CONNECTION"
+    $e.metadata.product_name = "Sysmon"
+    $e.target.port = 445
+
+  condition:
+    $e
+}

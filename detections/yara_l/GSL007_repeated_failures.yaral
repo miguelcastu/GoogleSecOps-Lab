@@ -1,0 +1,21 @@
+rule repeated_failures {
+  meta:
+    author = "GoogleSecOps-Lab"
+    rule_id = "GSL007"
+    description = "Repeated login failures"
+    severity = "MEDIUM"
+    mitre_attack = "T1110.001"
+    validation = "PENDING"
+
+  events:
+    $e.metadata.event_type = "USER_LOGIN"
+    $e.metadata.product_name = /^(Workspace|Entra ID|Windows Security|sshd)$/
+    $e.security_result.action = "BLOCK"
+    $key0 = $e.target.user.userid
+
+  match:
+    $key0 over 5m
+
+  condition:
+    #e >= 4
+}

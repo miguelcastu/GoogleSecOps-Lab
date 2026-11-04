@@ -1,0 +1,26 @@
+rule fail_then_success {
+  meta:
+    author = "GoogleSecOps-Lab"
+    rule_id = "GSL009"
+    description = "Login success after repeated failures"
+    severity = "HIGH"
+    mitre_attack = "T1110.001"
+    validation = "PENDING"
+
+  events:
+    $e.metadata.event_type = "USER_LOGIN"
+    $e.metadata.product_name = /^(Workspace|Entra ID|Windows Security|sshd)$/
+    $e.security_result.action = "BLOCK"
+    $f.metadata.event_type = "USER_LOGIN"
+    $f.metadata.product_name = /^(Workspace|Entra ID|Windows Security|sshd)$/
+    $f.security_result.action = "ALLOW"
+    $key0 = $e.target.user.userid
+    $key0 = $f.target.user.userid
+    $e.metadata.event_timestamp.seconds < $f.metadata.event_timestamp.seconds
+
+  match:
+    $key0 over 5m
+
+  condition:
+    #e >= 3 and $f
+}

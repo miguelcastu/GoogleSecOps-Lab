@@ -1,0 +1,21 @@
+rule cloud_object_reads {
+  meta:
+    author = "GoogleSecOps-Lab"
+    rule_id = "GSL018"
+    description = "Burst of cloud object reads"
+    severity = "MEDIUM"
+    mitre_attack = "T1530"
+    validation = "PENDING"
+
+  events:
+    $e.metadata.event_type = "RESOURCE_READ"
+    $e.metadata.product_name = /^(Cloud Audit Logs|AWS CloudTrail)$/
+    $e.security_result.action = "ALLOW"
+    $key0 = $e.principal.user.userid
+
+  match:
+    $key0 over 10m
+
+  condition:
+    #e >= 5
+}

@@ -1,0 +1,19 @@
+rule large_egress {
+  meta:
+    author = "GoogleSecOps-Lab"
+    rule_id = "GSL017"
+    description = "Large permitted outbound transfer"
+    severity = "HIGH"
+    mitre_attack = "T1048"
+    validation = "PENDING"
+
+  events:
+    $e.metadata.event_type = "NETWORK_CONNECTION"
+    $e.metadata.product_name = "FortiGate"
+    $e.network.sent_bytes >= 104857600
+    $e.network.direction = "OUTBOUND"
+    $e.security_result.action = "ALLOW"
+
+  condition:
+    $e
+}

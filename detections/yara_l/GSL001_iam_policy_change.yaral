@@ -1,0 +1,18 @@
+rule iam_policy_change {
+  meta:
+    author = "GoogleSecOps-Lab"
+    rule_id = "GSL001"
+    description = "Cloud IAM policy change"
+    severity = "HIGH"
+    mitre_attack = "T1098"
+    validation = "PENDING"
+
+  events:
+    $e.metadata.event_type = "RESOURCE_PERMISSIONS_CHANGE"
+    $e.metadata.product_name = "Cloud Audit Logs"
+    $e.metadata.product_event_type = /(?:^|[.])SetIamPolicy$/ nocase
+    $e.security_result.action = "ALLOW"
+
+  condition:
+    $e
+}

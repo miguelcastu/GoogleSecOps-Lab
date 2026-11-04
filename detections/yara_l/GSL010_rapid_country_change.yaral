@@ -1,0 +1,23 @@
+rule rapid_country_change {
+  meta:
+    author = "GoogleSecOps-Lab"
+    rule_id = "GSL010"
+    description = "Rapid sign-ins from different countries"
+    severity = "MEDIUM"
+    mitre_attack = "T1078"
+    validation = "PENDING"
+
+  events:
+    $e.metadata.event_type = "USER_LOGIN"
+    $e.metadata.product_name = "Entra ID"
+    $e.security_result.action = "ALLOW"
+    $key0 = $e.target.user.userid
+    $distinct_value = $e.principal.location.country_or_region
+    $e.principal.location.country_or_region != ""
+
+  match:
+    $key0 over 10m
+
+  condition:
+    #distinct_value >= 2
+}

@@ -1,0 +1,18 @@
+rule firewall_change {
+  meta:
+    author = "GoogleSecOps-Lab"
+    rule_id = "GSL004"
+    description = "Cloud firewall rule change"
+    severity = "MEDIUM"
+    mitre_attack = "T1562.007"
+    validation = "PENDING"
+
+  events:
+    $e.metadata.event_type = "SETTING_MODIFICATION"
+    $e.metadata.product_name = "Cloud Audit Logs"
+    $e.metadata.product_event_type = /(?:^|[.])firewalls[.](?:insert|patch)$/ nocase
+    $e.security_result.action = "ALLOW"
+
+  condition:
+    $e
+}

@@ -1,0 +1,204 @@
+{
+  "scenarios": [
+    {
+      "scenario": "iam_policy",
+      "expected": [
+        "GSL001"
+      ]
+    },
+    {
+      "scenario": "iam_policy:negative",
+      "expected": []
+    },
+    {
+      "scenario": "service_key",
+      "expected": [
+        "GSL002"
+      ]
+    },
+    {
+      "scenario": "service_key:negative",
+      "expected": []
+    },
+    {
+      "scenario": "sink",
+      "expected": [
+        "GSL003"
+      ]
+    },
+    {
+      "scenario": "sink:negative",
+      "expected": []
+    },
+    {
+      "scenario": "firewall",
+      "expected": [
+        "GSL004"
+      ]
+    },
+    {
+      "scenario": "firewall:negative",
+      "expected": []
+    },
+    {
+      "scenario": "aws_role",
+      "expected": [
+        "GSL005"
+      ]
+    },
+    {
+      "scenario": "aws_role:negative",
+      "expected": []
+    },
+    {
+      "scenario": "aws_bucket",
+      "expected": [
+        "GSL006"
+      ]
+    },
+    {
+      "scenario": "aws_bucket:negative",
+      "expected": []
+    },
+    {
+      "scenario": "failures",
+      "expected": [
+        "GSL007"
+      ]
+    },
+    {
+      "scenario": "failures:negative",
+      "expected": []
+    },
+    {
+      "scenario": "spray",
+      "expected": [
+        "GSL008"
+      ]
+    },
+    {
+      "scenario": "spray:negative",
+      "expected": []
+    },
+    {
+      "scenario": "fail_success",
+      "expected": [
+        "GSL009"
+      ]
+    },
+    {
+      "scenario": "fail_success:negative",
+      "expected": []
+    },
+    {
+      "scenario": "countries",
+      "expected": [
+        "GSL010"
+      ]
+    },
+    {
+      "scenario": "countries:negative",
+      "expected": []
+    },
+    {
+      "scenario": "powershell",
+      "expected": [
+        "GSL011"
+      ]
+    },
+    {
+      "scenario": "powershell:negative",
+      "expected": []
+    },
+    {
+      "scenario": "office",
+      "expected": [
+        "GSL012"
+      ]
+    },
+    {
+      "scenario": "office:negative",
+      "expected": []
+    },
+    {
+      "scenario": "registry",
+      "expected": [
+        "GSL013"
+      ]
+    },
+    {
+      "scenario": "registry:negative",
+      "expected": []
+    },
+    {
+      "scenario": "smb",
+      "expected": [
+        "GSL014"
+      ]
+    },
+    {
+      "scenario": "smb:negative",
+      "expected": []
+    },
+    {
+      "scenario": "long_dns",
+      "expected": [
+        "GSL015"
+      ]
+    },
+    {
+      "scenario": "long_dns:negative",
+      "expected": []
+    },
+    {
+      "scenario": "c2",
+      "expected": [
+        "GSL016"
+      ]
+    },
+    {
+      "scenario": "c2:negative",
+      "expected": []
+    },
+    {
+      "scenario": "egress",
+      "expected": [
+        "GSL017"
+      ]
+    },
+    {
+      "scenario": "egress:negative",
+      "expected": []
+    },
+    {
+      "scenario": "reads",
+      "expected": [
+        "GSL018"
+      ]
+    },
+    {
+      "scenario": "reads:negative",
+      "expected": []
+    },
+    {
+      "scenario": "cross",
+      "expected": [
+        "GSL001",
+        "GSL019"
+      ]
+    },
+    {
+      "scenario": "cross:negative",
+      "expected": [
+        "GSL001"
+      ]
+    },
+    {
+      "scenario": "approved_backup_false_positive",
+      "expected": [
+        "GSL017"
+      ],
+      "ground_truth": "benign"
+    }
+  ]
+}

@@ -1,0 +1,34 @@
+[build-system]
+requires = ["uv_build>=0.12,<0.13"]
+build-backend = "uv_build"
+
+[project]
+name = "googlesecops-lab"
+version = "0.1.0"
+description = "Local-first detection engineering and SOC laboratory"
+requires-python = ">=3.12"
+dependencies = []
+
+[project.optional-dependencies]
+dev = ["pytest>=8,<10", "ruff>=0.11,<1", "mypy>=1.15,<2", "pip-audit>=2.9,<3", "detect-secrets==1.5.0"]
+cloud = ["google-auth>=2.40,<3", "requests>=2.32,<3"]
+
+[project.scripts]
+secops-lab = "secops_lab.cli:main"
+
+[tool.uv.build-backend]
+module-name = "secops_lab"
+
+[tool.ruff]
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F", "I", "B", "UP"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.mypy]
+files = ["src/secops_lab"]
+ignore_missing_imports = true
+check_untyped_defs = true

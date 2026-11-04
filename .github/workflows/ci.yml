@@ -1,0 +1,66 @@
+name: Laboratory CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: lab-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@eac588ad8def6316056a12d4907a9d4d84ff7a3b # v7.3.0
+      - uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3.1.2
+        with:
+          terraform_version: 1.14.8
+          terraform_wrapper: false
+      - name: Install locked dependencies
+        run: uv sync --locked --python 3.12 --extra dev --extra cloud
+      - name: Format, type and generated content checks
+        run: |
+          uv run --no-sync ruff check .
+          uv run --no-sync ruff format --check .
+          uv run --no-sync mypy
+          uv run --no-sync python scripts/sync_content.py --check
+      - name: Secret and dependency checks
+        run: |
+          mkdir -p var/ci
+          uv run --no-sync detect-secrets scan > var/ci/secret-scan.json
+          uv run --no-sync python -c 'import json; assert not json.load(open("var/ci/secret-scan.json"))["results"], "Possible credentials in tracked files"'
+          uv export --locked --extra cloud --no-dev --no-emit-project --no-editable -o var/ci/runtime.txt
+          uv run --no-sync pip-audit --disable-pip --require-hashes -r var/ci/runtime.txt
+      - name: Python tests and end-to-end demo
+        run: |
+          uv run --no-sync pytest --junitxml=var/ci/junit.xml
+          uv run --no-sync secops-lab --db var/ci/lab.sqlite demo --out var/ci/demo
+      - name: Terraform formatting, validation and mock plans
+        env:
+          CHECKPOINT_DISABLE: "1"
+        run: |
+          terraform -chdir=infrastructure fmt -check -recursive
+          terraform -chdir=infrastructure init -backend=false -lockfile=readonly
+          terraform -chdir=infrastructure validate
+          terraform -chdir=infrastructure test
+      - name: Upload synthetic evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: laboratory-validation
+          path: |
+            var/ci/junit.xml
+            var/ci/demo/report.*
+            var/ci/demo/validation.json
+          retention-days: 7
+          if-no-files-found: ignore

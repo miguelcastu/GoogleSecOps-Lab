@@ -1,0 +1,21 @@
+rule dns_long_labels {
+  meta:
+    author = "GoogleSecOps-Lab"
+    rule_id = "GSL015"
+    description = "Repeated long DNS labels"
+    severity = "MEDIUM"
+    mitre_attack = "T1071.004"
+    validation = "PENDING"
+
+  events:
+    $e.metadata.event_type = "NETWORK_DNS"
+    $e.metadata.product_name = "DNS"
+    $e.network.dns.questions.name = /(?:^|[.])[a-z0-9]{45,}[.]/ nocase
+    $key0 = $e.principal.ip
+
+  match:
+    $key0 over 5m
+
+  condition:
+    #e >= 3
+}

@@ -1,0 +1,923 @@
+[
+  {
+    "id": "GSL001",
+    "name": "iam_policy_change",
+    "title": "Cloud IAM policy change",
+    "severity": "high",
+    "attack": [
+      "T1098"
+    ],
+    "playbook": "cloud",
+    "sources": [
+      "gcp_iam"
+    ],
+    "conditions": [
+      [
+        "metadata.event_type",
+        "eq",
+        "RESOURCE_PERMISSIONS_CHANGE"
+      ],
+      [
+        "metadata.product_name",
+        "in",
+        [
+          "Cloud Audit Logs"
+        ]
+      ],
+      [
+        "metadata.product_event_type",
+        "regex",
+        "(?:^|[.])SetIamPolicy$"
+      ],
+      [
+        "security_result.action",
+        "eq",
+        "ALLOW"
+      ]
+    ],
+    "correlation": null,
+    "rationale": "Policy updates can grant privilege or introduce new principals.",
+    "false_positive": "Approved infrastructure deployments routinely change policy.",
+    "tuning": "Baseline deployment identities and correlate the policy delta before escalation.",
+    "scenario": "iam_policy",
+    "expected": "Positive fixture alerts and nearby negative fixture remains quiet.",
+    "native_validation": "PENDING"
+  },
+  {
+    "id": "GSL002",
+    "name": "service_account_key",
+    "title": "Service account key creation",
+    "severity": "high",
+    "attack": [
+      "T1098.001"
+    ],
+    "playbook": "cloud",
+    "sources": [
+      "gcp_iam"
+    ],
+    "conditions": [
+      [
+        "metadata.event_type",
+        "eq",
+        "RESOURCE_CREATION"
+      ],
+      [
+        "metadata.product_name",
+        "in",
+        [
+          "Cloud Audit Logs"
+        ]
+      ],
+      [
+        "metadata.product_event_type",
+        "regex",
+        "(?:^|[.])CreateServiceAccountKey$"
+      ],
+      [
+        "security_result.action",
+        "eq",
+        "ALLOW"
+      ]
+    ],
+    "correlation": null,
+    "rationale": "New user-managed keys can provide durable access.",
+    "false_positive": "Legacy workloads may rotate keys legitimately.",
+    "tuning": "Allowlist documented exceptions and prefer workload identity.",
+    "scenario": "service_key",
+    "expected": "Positive fixture alerts and nearby negative fixture remains quiet.",
+    "native_validation": "PENDING"
+  },
+  {
+    "id": "GSL003",
+    "name": "logging_sink_change",
+    "title": "Logging sink modification",
+    "severity": "high",
+    "attack": [
+      "T1562.008"
+    ],
+    "playbook": "configuration",
+    "sources": [
+      "gcp_audit"
+    ],
+    "conditions": [
+      [
+        "metadata.event_type",
+        "eq",
+        "SETTING_MODIFICATION"
+      ],
+      [
+        "metadata.product_name",
+        "in",
+        [
+          "Cloud Audit Logs"
+        ]
+      ],
+      [
+        "metadata.product_event_type",
+        "regex",
+        "(?:^|[.])(?:UpdateSink|DeleteSink|CreateExclusion|UpdateExclusion)$"
+      ],
+      [
+        "security_result.action",
+        "eq",
+        "ALLOW"
+      ]
+    ],
+    "correlation": null,
+    "rationale": "Changing routing can hide future activity from security monitoring.",
+    "false_positive": "Platform maintenance may change sink filters.",
+    "tuning": "Review the destination and filter diff against change tickets.",
+    "scenario": "sink",
+    "expected": "Positive fixture alerts and nearby negative fixture remains quiet.",
+    "native_validation": "PENDING"
+  },
+  {
+    "id": "GSL004",
+    "name": "firewall_change",
+    "title": "Cloud firewall rule change",
+    "severity": "medium",
+    "attack": [
+      "T1562.007"
+    ],
+    "playbook": "configuration",
+    "sources": [
+      "gcp_audit"
+    ],
+    "conditions": [
+      [
+        "metadata.event_type",
+        "eq",
+        "SETTING_MODIFICATION"
+      ],
+      [
+        "metadata.product_name",
+        "in",
+        [
+          "Cloud Audit Logs"
+        ]
+      ],
+      [
+        "metadata.product_event_type",
+        "regex",
+        "(?:^|[.])firewalls[.](?:insert|patch)$"
+      ],
+      [
+        "security_result.action",
+        "eq",
+        "ALLOW"
+      ]
+    ],
+    "correlation": null,
+    "rationale": "A rule change may widen the reachable network surface.",
+    "false_positive": "Approved rule updates are common.",
+    "tuning": "Review source ranges, target tags and change approvals.",
+    "scenario": "firewall",
+    "expected": "Positive fixture alerts and nearby negative fixture remains quiet.",
+    "native_validation": "PENDING"
+  },
+  {
+    "id": "GSL005",
+    "name": "aws_role_policy",
+    "title": "AWS role policy attachment",
+    "severity": "high",
+    "attack": [
+      "T1098.003"
+    ],
+    "playbook": "cloud",
+    "sources": [
+      "cloudtrail"
+    ],
+    "conditions": [
+      [
+        "metadata.event_type",
+        "eq",
+        "RESOURCE_PERMISSIONS_CHANGE"
+      ],
+      [
+        "metadata.product_name",
+        "in",
+        [
+          "AWS CloudTrail"
+        ]
+      ],
+      [
+        "metadata.product_event_type",
+        "eq",
+        "AttachRolePolicy"
+      ],
+      [
+        "security_result.action",
+        "eq",
+        "ALLOW"
+      ]
+    ],
+    "correlation": null,
+    "rationale": "A new policy attachment may expand the permissions of a role.",
+    "false_positive": "IaC deployments can legitimately attach policies.",
+    "tuning": "Compare against the AWS change record and inspect policy permissions.",
+    "scenario": "aws_role",
+    "expected": "Positive fixture alerts and nearby negative fixture remains quiet.",
+    "native_validation": "PENDING"
+  },
+  {
+    "id": "GSL006",
+    "name": "aws_bucket_policy",
+    "title": "AWS bucket policy change",
+    "severity": "medium",
+    "attack": [
+      "T1530"
+    ],
+    "playbook": "configuration",
+    "sources": [
+      "cloudtrail"
+    ],
+    "conditions": [
+      [
+        "metadata.event_type",
+        "eq",
+        "RESOURCE_PERMISSIONS_CHANGE"
+      ],
+      [
+        "metadata.product_name",
+        "in",
+        [
+          "AWS CloudTrail"
+        ]
+      ],
+      [
+        "metadata.product_event_type",
+        "eq",
+        "PutBucketPolicy"
+      ],
+      [
+        "security_result.action",
+        "eq",
+        "ALLOW"
+      ]
+    ],
+    "correlation": null,
+    "rationale": "A policy update can broaden object access.",
+    "false_positive": "Routine remediation and deployment may change policies.",
+    "tuning": "Inspect the new policy and block-public-access configuration.",
+    "scenario": "aws_bucket",
+    "expected": "Positive fixture alerts and nearby negative fixture remains quiet.",
+    "native_validation": "PENDING"
+  },
+  {
+    "id": "GSL007",
+    "name": "repeated_failures",
+    "title": "Repeated login failures",
+    "severity": "medium",
+    "attack": [
+      "T1110.001"
+    ],
+    "playbook": "authentication",
+    "sources": [
+      "workspace",
+      "entra",
+      "windows",
+      "linux"
+    ],
+    "conditions": [
+      [
+        "metadata.event_type",
+        "eq",
+        "USER_LOGIN"
+      ],
+      [
+        "metadata.product_name",
+        "in",
+        [
+          "Workspace",
+          "Entra ID",
+          "Windows Security",
+          "sshd"
+        ]
+      ],
+      [
+        "security_result.action",
+        "eq",
+        "BLOCK"
+      ]
+    ],
+    "correlation": {
+      "keys": [
+        "target.user.userid"
+      ],
+      "minutes": 5,
+      "count": 4
+    },
+    "rationale": "Repeated failures for one identity can indicate password guessing.",
+    "false_positive": "Expired secrets and typing errors can produce repeated failures.",
+    "tuning": "Baseline service identities and tune threshold by authentication provider.",
+    "scenario": "failures",
+    "expected": "Positive fixture alerts and nearby negative fixture remains quiet.",
+    "native_validation": "PENDING"
+  },
+  {
+    "id": "GSL008",
+    "name": "password_spray",
+    "title": "Password spray from one IP",
+    "severity": "high",
+    "attack": [
+      "T1110.003"
+    ],
+    "playbook": "authentication",
+    "sources": [
+      "workspace",
+      "entra",
+      "windows",
+      "linux"
+    ],
+    "conditions": [
+      [
+        "metadata.event_type",
+        "eq",
+        "USER_LOGIN"
+      ],
+      [
+        "metadata.product_name",
+        "in",
+        [
+          "Workspace",
+          "Entra ID",
+          "Windows Security",
+          "sshd"
+        ]
+      ],
+      [
+        "security_result.action",
+        "eq",
+        "BLOCK"
+      ]
+    ],
+    "correlation": {
+      "keys": [
+        "principal.ip"
+      ],
+      "minutes": 10,
+      "count": 5,
+      "distinct": "target.user.userid"
+    },
+    "rationale": "One IP failing against multiple identities can indicate password spraying.",
+    "false_positive": "NAT or a misconfigured proxy can aggregate unrelated attempts.",
+    "tuning": "Baseline shared egress and require more distinct users in noisy segments.",
+    "scenario": "spray",
+    "expected": "Positive fixture alerts and nearby negative fixture remains quiet.",
+    "native_validation": "PENDING"
+  },
+  {
+    "id": "GSL009",
+    "name": "fail_then_success",
+    "title": "Login success after repeated failures",
+    "severity": "high",
+    "attack": [
+      "T1110.001"
+    ],
+    "playbook": "authentication",
+    "sources": [
+      "workspace",
+      "entra",
+      "windows",
+      "linux"
+    ],
+    "conditions": [
+      [
+        "metadata.event_type",
+        "eq",
+        "USER_LOGIN"
+      ],
+      [
+        "metadata.product_name",
+        "in",
+        [
+          "Workspace",
+          "Entra ID",
+          "Windows Security",
+          "sshd"
+        ]
+      ],
+      [
+        "security_result.action",
+        "eq",
+        "BLOCK"
+      ]
+    ],
+    "correlation": {
+      "keys": [
+        "target.user.userid"
+      ],
+      "minutes": 5,
+      "count": 3,
+      "follow": [
+        [
+          "metadata.event_type",
+          "eq",
+          "USER_LOGIN"
+        ],
+        [
+          "metadata.product_name",
+          "in",
+          [
+            "Workspace",
+            "Entra ID",
+            "Windows Security",
+            "sshd"
+          ]
+        ],
+        [
+          "security_result.action",
+          "eq",
+          "ALLOW"
+        ]
+      ]
+    },
+    "rationale": "A successful sign-in after repeated failures may indicate credential compromise.",
+    "false_positive": "A legitimate user can eventually enter the correct password.",
+    "tuning": "Confirm device, MFA and source IP with the identity owner.",
+    "scenario": "fail_success",
+    "expected": "Positive fixture alerts and nearby negative fixture remains quiet.",
+    "native_validation": "PENDING"
+  },
+  {
+    "id": "GSL010",
+    "name": "rapid_country_change",
+    "title": "Rapid sign-ins from different countries",
+    "severity": "medium",
+    "attack": [
+      "T1078"
+    ],
+    "playbook": "authentication",
+    "sources": [
+      "entra"
+    ],
+    "conditions": [
+      [
+        "metadata.event_type",
+        "eq",
+        "USER_LOGIN"
+      ],
+      [
+        "metadata.product_name",
+        "in",
+        [
+          "Entra ID"
+        ]
+      ],
+      [
+        "security_result.action",
+        "eq",
+        "ALLOW"
+      ]
+    ],
+    "correlation": {
+      "keys": [
+        "target.user.userid"
+      ],
+      "minutes": 10,
+      "count": 2,
+      "distinct": "principal.location.country_or_region"
+    },
+    "rationale": "A principal signing in from different countries rapidly may indicate account misuse.",
+    "false_positive": "VPN exits and IP geolocation errors are common.",
+    "tuning": "Use known VPN ranges and managed-device context.",
+    "scenario": "countries",
+    "expected": "Positive fixture alerts and nearby negative fixture remains quiet.",
+    "native_validation": "PENDING"
+  },
+  {
+    "id": "GSL011",
+    "name": "encoded_powershell",
+    "title": "Encoded PowerShell invocation",
+    "severity": "high",
+    "attack": [
+      "T1059.001"
+    ],
+    "playbook": "endpoint",
+    "sources": [
+      "sysmon",
+      "falcon"
+    ],
+    "conditions": [
+      [
+        "metadata.event_type",
+        "eq",
+        "PROCESS_LAUNCH"
+      ],
+      [
+        "metadata.product_name",
+        "in",
+        [
+          "Sysmon",
+          "Falcon"
+        ]
+      ],
+      [
+        "target.process.command_line",
+        "regex",
+        "(?:powershell|pwsh)(?:[.]exe)?[\" ]+.* -(?:enc|encodedcommand)(?:[ =]|$)|(?:powershell|pwsh)(?:[.]exe)?[\" ]+-(?:enc|encodedcommand)(?:[ =]|$)"
+      ]
+    ],
+    "correlation": null,
+    "rationale": "Encoded arguments can conceal a script payload.",
+    "false_positive": "Deployment tooling also uses encoded commands.",
+    "tuning": "Inspect the process tree and decode the payload offline.",
+    "scenario": "powershell",
+    "expected": "Positive fixture alerts and nearby negative fixture remains quiet.",
+    "native_validation": "PENDING"
+  },
+  {
+    "id": "GSL012",
+    "name": "office_shell",
+    "title": "Office application spawning a shell",
+    "severity": "high",
+    "attack": [
+      "T1204.002"
+    ],
+    "playbook": "endpoint",
+    "sources": [
+      "sysmon"
+    ],
+    "conditions": [
+      [
+        "metadata.event_type",
+        "eq",
+        "PROCESS_LAUNCH"
+      ],
+      [
+        "metadata.product_name",
+        "in",
+        [
+          "Sysmon"
+        ]
+      ],
+      [
+        "principal.process.file.full_path",
+        "regex",
+        "(?:^|[\\\\/])(?:winword|excel|powerpnt)[.]exe$"
+      ],
+      [
+        "target.process.file.full_path",
+        "regex",
+        "(?:^|[\\\\/])(?:cmd|powershell|pwsh|wscript)[.]exe$"
+      ]
+    ],
+    "correlation": null,
+    "rationale": "A shell launched by Office can indicate malicious document execution.",
+    "false_positive": "Some legacy macros invoke approved command-line tools.",
+    "tuning": "Check file provenance and allowlist signed workflow tools.",
+    "scenario": "office",
+    "expected": "Positive fixture alerts and nearby negative fixture remains quiet.",
+    "native_validation": "PENDING"
+  },
+  {
+    "id": "GSL013",
+    "name": "run_key",
+    "title": "Windows Run key modification",
+    "severity": "medium",
+    "attack": [
+      "T1547.001"
+    ],
+    "playbook": "endpoint",
+    "sources": [
+      "sysmon"
+    ],
+    "conditions": [
+      [
+        "metadata.event_type",
+        "eq",
+        "REGISTRY_MODIFICATION"
+      ],
+      [
+        "metadata.product_name",
+        "in",
+        [
+          "Sysmon"
+        ]
+      ],
+      [
+        "target.registry.registry_key",
+        "regex",
+        "[\\\\/]currentversion[\\\\/]run(?:once)?[\\\\/]"
+      ]
+    ],
+    "correlation": null,
+    "rationale": "A Run key value can establish logon persistence.",
+    "false_positive": "Installers and legitimate startup software create Run values.",
+    "tuning": "Inspect the registry value, writing process and signer.",
+    "scenario": "registry",
+    "expected": "Positive fixture alerts and nearby negative fixture remains quiet.",
+    "native_validation": "PENDING"
+  },
+  {
+    "id": "GSL014",
+    "name": "smb_lateral",
+    "title": "Remote SMB connection",
+    "severity": "medium",
+    "attack": [
+      "T1021.002"
+    ],
+    "playbook": "endpoint",
+    "sources": [
+      "sysmon"
+    ],
+    "conditions": [
+      [
+        "metadata.event_type",
+        "eq",
+        "NETWORK_CONNECTION"
+      ],
+      [
+        "metadata.product_name",
+        "in",
+        [
+          "Sysmon"
+        ]
+      ],
+      [
+        "target.port",
+        "eq",
+        445
+      ]
+    ],
+    "correlation": null,
+    "rationale": "An endpoint reaching TCP/445 can indicate remote service activity.",
+    "false_positive": "File servers and administrative tooling use SMB routinely.",
+    "tuning": "Baseline approved file servers and verify destination and process.",
+    "scenario": "smb",
+    "expected": "Positive fixture alerts and nearby negative fixture remains quiet.",
+    "native_validation": "PENDING"
+  },
+  {
+    "id": "GSL015",
+    "name": "dns_long_labels",
+    "title": "Repeated long DNS labels",
+    "severity": "medium",
+    "attack": [
+      "T1071.004"
+    ],
+    "playbook": "network",
+    "sources": [
+      "dns"
+    ],
+    "conditions": [
+      [
+        "metadata.event_type",
+        "eq",
+        "NETWORK_DNS"
+      ],
+      [
+        "metadata.product_name",
+        "in",
+        [
+          "DNS"
+        ]
+      ],
+      [
+        "network.dns.questions.name",
+        "regex",
+        "(?:^|[.])[a-z0-9]{45,}[.]"
+      ]
+    ],
+    "correlation": {
+      "keys": [
+        "principal.ip"
+      ],
+      "minutes": 5,
+      "count": 3
+    },
+    "rationale": "Repeated long labels can carry encoded data.",
+    "false_positive": "Telemetry and CDNs may use long labels.",
+    "tuning": "Baseline domains and inspect entropy and query volume.",
+    "scenario": "long_dns",
+    "expected": "Positive fixture alerts and nearby negative fixture remains quiet.",
+    "native_validation": "PENDING"
+  },
+  {
+    "id": "GSL016",
+    "name": "repeated_alt_port",
+    "title": "Repeated traffic to alternate C2 port",
+    "severity": "medium",
+    "attack": [
+      "T1571"
+    ],
+    "playbook": "network",
+    "sources": [
+      "fortigate"
+    ],
+    "conditions": [
+      [
+        "metadata.event_type",
+        "eq",
+        "NETWORK_CONNECTION"
+      ],
+      [
+        "metadata.product_name",
+        "in",
+        [
+          "FortiGate"
+        ]
+      ],
+      [
+        "target.port",
+        "eq",
+        4444
+      ],
+      [
+        "network.direction",
+        "eq",
+        "OUTBOUND"
+      ],
+      [
+        "security_result.action",
+        "eq",
+        "ALLOW"
+      ]
+    ],
+    "correlation": {
+      "keys": [
+        "principal.ip",
+        "target.ip"
+      ],
+      "minutes": 10,
+      "count": 4
+    },
+    "rationale": "Repeated permitted outbound sessions to port 4444 warrant investigation.",
+    "false_positive": "Authorized diagnostic tools can use the same port.",
+    "tuning": "Inspect destinations and baseline approved services. Check periodicity separately.",
+    "scenario": "c2",
+    "expected": "Positive fixture alerts and nearby negative fixture remains quiet.",
+    "native_validation": "PENDING"
+  },
+  {
+    "id": "GSL017",
+    "name": "large_egress",
+    "title": "Large permitted outbound transfer",
+    "severity": "high",
+    "attack": [
+      "T1048"
+    ],
+    "playbook": "exfiltration",
+    "sources": [
+      "fortigate"
+    ],
+    "conditions": [
+      [
+        "metadata.event_type",
+        "eq",
+        "NETWORK_CONNECTION"
+      ],
+      [
+        "metadata.product_name",
+        "in",
+        [
+          "FortiGate"
+        ]
+      ],
+      [
+        "network.sent_bytes",
+        "gte",
+        104857600
+      ],
+      [
+        "network.direction",
+        "eq",
+        "OUTBOUND"
+      ],
+      [
+        "security_result.action",
+        "eq",
+        "ALLOW"
+      ]
+    ],
+    "correlation": null,
+    "rationale": "A single outbound session over 100 MiB can indicate bulk transfer.",
+    "false_positive": "Backups and artifact publishing may transfer large objects.",
+    "tuning": "Baseline traffic by source and destination. Verify whether data was authorized.",
+    "scenario": "egress",
+    "expected": "Positive fixture alerts and nearby negative fixture remains quiet.",
+    "native_validation": "PENDING"
+  },
+  {
+    "id": "GSL018",
+    "name": "cloud_object_reads",
+    "title": "Burst of cloud object reads",
+    "severity": "medium",
+    "attack": [
+      "T1530"
+    ],
+    "playbook": "exfiltration",
+    "sources": [
+      "gcp_audit",
+      "cloudtrail"
+    ],
+    "conditions": [
+      [
+        "metadata.event_type",
+        "eq",
+        "RESOURCE_READ"
+      ],
+      [
+        "metadata.product_name",
+        "in",
+        [
+          "Cloud Audit Logs",
+          "AWS CloudTrail"
+        ]
+      ],
+      [
+        "security_result.action",
+        "eq",
+        "ALLOW"
+      ]
+    ],
+    "correlation": {
+      "keys": [
+        "principal.user.userid"
+      ],
+      "minutes": 10,
+      "count": 5
+    },
+    "rationale": "A burst of object reads by one identity may precede exfiltration.",
+    "false_positive": "Batch ETL and backups often read many objects.",
+    "tuning": "Tune to workload baselines and correlate with egress.",
+    "scenario": "reads",
+    "expected": "Positive fixture alerts and nearby negative fixture remains quiet.",
+    "native_validation": "PENDING"
+  },
+  {
+    "id": "GSL019",
+    "name": "login_then_iam",
+    "title": "Sign-in followed by IAM change",
+    "severity": "high",
+    "attack": [
+      "T1078"
+    ],
+    "playbook": "cloud",
+    "sources": [
+      "entra",
+      "workspace",
+      "gcp_iam"
+    ],
+    "conditions": [
+      [
+        "metadata.event_type",
+        "eq",
+        "USER_LOGIN"
+      ],
+      [
+        "metadata.product_name",
+        "in",
+        [
+          "Entra ID",
+          "Workspace"
+        ]
+      ],
+      [
+        "security_result.action",
+        "eq",
+        "ALLOW"
+      ]
+    ],
+    "correlation": {
+      "keys": [
+        "target.user.userid"
+      ],
+      "minutes": 10,
+      "count": 1,
+      "follow": [
+        [
+          "metadata.event_type",
+          "eq",
+          "RESOURCE_PERMISSIONS_CHANGE"
+        ],
+        [
+          "metadata.product_name",
+          "in",
+          [
+            "Cloud Audit Logs"
+          ]
+        ],
+        [
+          "metadata.product_event_type",
+          "regex",
+          "(?:^|[.])SetIamPolicy$"
+        ],
+        [
+          "security_result.action",
+          "eq",
+          "ALLOW"
+        ]
+      ],
+      "follow_keys": [
+        "principal.user.userid"
+      ]
+    },
+    "rationale": "An authentication followed by a cloud policy update can reveal abuse of a federated identity.",
+    "false_positive": "Operators may sign in just before an approved change.",
+    "tuning": "Match canonical identity across providers and check ticket, MFA and policy delta.",
+    "scenario": "cross",
+    "expected": "Positive fixture alerts and nearby negative fixture remains quiet.",
+    "native_validation": "PENDING"
+  }
+]

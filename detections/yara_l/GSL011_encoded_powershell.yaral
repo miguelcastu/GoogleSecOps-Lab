@@ -1,0 +1,17 @@
+rule encoded_powershell {
+  meta:
+    author = "GoogleSecOps-Lab"
+    rule_id = "GSL011"
+    description = "Encoded PowerShell invocation"
+    severity = "HIGH"
+    mitre_attack = "T1059.001"
+    validation = "PENDING"
+
+  events:
+    $e.metadata.event_type = "PROCESS_LAUNCH"
+    $e.metadata.product_name = /^(Sysmon|Falcon)$/
+    $e.target.process.command_line = /(?:powershell|pwsh)(?:[.]exe)?[" ]+.* -(?:enc|encodedcommand)(?:[ =]|$)|(?:powershell|pwsh)(?:[.]exe)?[" ]+-(?:enc|encodedcommand)(?:[ =]|$)/ nocase
+
+  condition:
+    $e
+}

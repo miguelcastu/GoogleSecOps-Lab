@@ -1,0 +1,18 @@
+rule aws_role_policy {
+  meta:
+    author = "GoogleSecOps-Lab"
+    rule_id = "GSL005"
+    description = "AWS role policy attachment"
+    severity = "HIGH"
+    mitre_attack = "T1098.003"
+    validation = "PENDING"
+
+  events:
+    $e.metadata.event_type = "RESOURCE_PERMISSIONS_CHANGE"
+    $e.metadata.product_name = "AWS CloudTrail"
+    $e.metadata.product_event_type = "AttachRolePolicy"
+    $e.security_result.action = "ALLOW"
+
+  condition:
+    $e
+}

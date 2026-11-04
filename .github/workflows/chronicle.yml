@@ -1,0 +1,53 @@
+name: Chronicle rule staging
+
+on:
+  workflow_dispatch:
+    inputs:
+      rule_id:
+        description: Catalog ID, such as GSL001
+        required: true
+        type: string
+      operation:
+        description: Verify native syntax or create a rule for review
+        type: choice
+        options: [verify, create]
+        default: verify
+
+permissions:
+  contents: read
+
+jobs:
+  stage:
+    if: github.ref == 'refs/heads/main' && vars.ENABLE_CHRONICLE_RULE_WORKFLOW == 'true'
+    environment: chronicle
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      GSL_ENABLE_CHRONICLE: "1"
+      GSL_CHRONICLE_PROJECT: ${{ vars.CHRONICLE_PROJECT }}
+      GSL_CHRONICLE_LOCATION: ${{ vars.CHRONICLE_LOCATION }}
+      GSL_CHRONICLE_INSTANCE: ${{ vars.CHRONICLE_INSTANCE }}
+      GSL_CHRONICLE_WRITE: ${{ inputs.operation == 'create' && '1' || '0' }}
+      RULE_ID: ${{ inputs.rule_id }}
+      OPERATION: ${{ inputs.operation }}
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@eac588ad8def6316056a12d4907a9d4d84ff7a3b # v7.3.0
+      - run: uv sync --locked --python 3.12 --extra cloud
+      - uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3.0.0
+        with:
+          workload_identity_provider: ${{ vars.CHRONICLE_WIF_PROVIDER }}
+          service_account: ${{ vars.CHRONICLE_SERVICE_ACCOUNT }}
+      - name: Verify or stage the selected rule
+        shell: bash
+        run: |
+          [[ "$RULE_ID" =~ ^GSL[0-9]{3}$ ]]
+          shopt -s nullglob
+          rules=(detections/yara_l/"${RULE_ID}"_*.yaral)
+          [[ ${#rules[@]} == 1 ]]
+          uv run --no-sync python -m secops_lab.chronicle "$OPERATION" "${rules[0]}"

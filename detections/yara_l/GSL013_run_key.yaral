@@ -1,0 +1,17 @@
+rule run_key {
+  meta:
+    author = "GoogleSecOps-Lab"
+    rule_id = "GSL013"
+    description = "Windows Run key modification"
+    severity = "MEDIUM"
+    mitre_attack = "T1547.001"
+    validation = "PENDING"
+
+  events:
+    $e.metadata.event_type = "REGISTRY_MODIFICATION"
+    $e.metadata.product_name = "Sysmon"
+    $e.target.registry.registry_key = /[\\\/]currentversion[\\\/]run(?:once)?[\\\/]/ nocase
+
+  condition:
+    $e
+}

@@ -1,0 +1,27 @@
+rule login_then_iam {
+  meta:
+    author = "GoogleSecOps-Lab"
+    rule_id = "GSL019"
+    description = "Sign-in followed by IAM change"
+    severity = "HIGH"
+    mitre_attack = "T1078"
+    validation = "PENDING"
+
+  events:
+    $e.metadata.event_type = "USER_LOGIN"
+    $e.metadata.product_name = /^(Entra ID|Workspace)$/
+    $e.security_result.action = "ALLOW"
+    $f.metadata.event_type = "RESOURCE_PERMISSIONS_CHANGE"
+    $f.metadata.product_name = "Cloud Audit Logs"
+    $f.metadata.product_event_type = /(?:^|[.])SetIamPolicy$/ nocase
+    $f.security_result.action = "ALLOW"
+    $key0 = $e.target.user.userid
+    $key0 = $f.principal.user.userid
+    $e.metadata.event_timestamp.seconds < $f.metadata.event_timestamp.seconds
+
+  match:
+    $key0 over 10m
+
+  condition:
+    #e >= 1 and $f
+}
