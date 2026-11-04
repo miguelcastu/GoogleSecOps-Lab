@@ -2,6 +2,8 @@
 
 A local-first SOC and detection engineering laboratory for Google Cloud audit telemetry, UDM normalization and Google Security Operations rule authoring. It runs end to end on Python 3.12 and SQLite. The local evaluator runs Python reference logic. YARA-L sources are checked into Git and carry a **PENDING** native validation status.
 
+[Run the offline demo](#quick-start) · [Walk through an IAM investigation](docs/iam-investigation.md) · [Architecture and limits](docs/architecture.md) · [Verification evidence](docs/verification.md)
+
 ## Architecture
 
 ```mermaid
@@ -63,7 +65,9 @@ Replace **CASE_ID** with a complete ID from the JSON report. Use **--negative** 
 
 ## Detection engineering
 
-19 use cases cover IAM, identity, endpoint, network and exfiltration behaviors. Thresholds include password spray, repeated failures, ordered failure-to-success, DNS label bursts and object reads. Cross-source correlation links a sign-in and a later IAM policy change by identity. The catalog documents ATT&CK techniques, UDM fields, blind spots, tuning and each scenario's expected outcome. [Detection reference](docs/detections.md) · [Scenario index](scenarios/catalog.json) · [Labeled outcomes](datasets/expected.json) · [Source mappings](docs/sources.md)
+The 19 YARA-L sources cover IAM, identity, endpoint, network and exfiltration behaviors. Thresholds include password spray, repeated failures, ordered failure-to-success, DNS label bursts and object reads. Cross-source correlation links a sign-in and a later IAM policy change by identity. The catalog documents ATT&CK techniques, UDM fields, blind spots, tuning and each scenario's expected outcome. [Detection reference](docs/detections.md) · [Scenario index](scenarios/catalog.json) · [Labeled outcomes](datasets/expected.json) · [Source mappings](docs/sources.md)
+
+The [GSL020 IAM investigation](docs/iam-investigation.md) is a separate Python correlation. It connects an observed sensitive IAM grant to subsequent successful Storage activity by the beneficiary. Its labeled evaluation corpus is separate from the demo and from the 19 YARA-L sources.
 
 ```sh
 uv run --no-sync secops-lab validate
