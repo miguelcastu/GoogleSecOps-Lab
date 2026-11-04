@@ -1,0 +1,206 @@
+{
+  "name": "IAM policy-change evaluation v1 (synthetic)",
+  "cases": [
+    {
+      "case": "project_grant_then_read",
+      "malicious": true,
+      "expected_gsl020": true,
+      "purpose": "External operator reads a restricted object after a project grant.",
+      "events": [
+        {"source":"gcp_iam","raw":{"timestamp":"2026-03-17T09:00:00.000Z","insertId":"evaluation-0-grant","logName":"projects/gsl-eval-europe/logs/cloudaudit.googleapis.com%2Factivity","resource":{"labels":{"project_id":"gsl-eval-europe"}},"protoPayload":{"@type":"type.googleapis.com/google.cloud.audit.AuditLog","serviceName":"cloudresourcemanager.googleapis.com","methodName":"google.iam.v1.IAMPolicy.SetIamPolicy","authenticationInfo":{"principalEmail":"release-auditor@enterprise.example.test"},"resourceName":"projects/gsl-eval-europe","status":{"code":0},"serviceData":{"policyDelta":{"bindingDeltas":[{"action":"ADD","role":"roles/storage.admin","member":"user:vendor.ops@external.example.test"}]}}}}},
+        {"source":"gcp_audit","raw":{"timestamp":"2026-03-17T09:07:00.000Z","insertId":"evaluation-0-use","logName":"projects/gsl-eval-europe/logs/cloudaudit.googleapis.com%2Fdata_access","resource":{"labels":{"project_id":"gsl-eval-europe"}},"protoPayload":{"@type":"type.googleapis.com/google.cloud.audit.AuditLog","serviceName":"storage.googleapis.com","methodName":"storage.objects.get","authenticationInfo":{"principalEmail":"vendor.ops@external.example.test"},"resourceName":"projects/_/buckets/q4-drafts/objects/pricing.csv","status":{"code":0},"authorizationInfo":[{"permission":"storage.objects.get","resource":"projects/_/buckets/q4-drafts/objects/pricing.csv","granted":true}]}}}
+      ]
+    },
+    {
+      "case": "bucket_grant_scoped_read",
+      "malicious": true,
+      "expected_gsl020": true,
+      "purpose": "Bucket grant and read share the same bucket.",
+      "events": [
+        {"source":"gcp_audit","raw":{"timestamp":"2026-03-17T09:00:00.000Z","insertId":"evaluation-1-grant","logName":"projects/gsl-eval-europe/logs/cloudaudit.googleapis.com%2Factivity","resource":{"labels":{"project_id":"gsl-eval-europe"}},"protoPayload":{"@type":"type.googleapis.com/google.cloud.audit.AuditLog","serviceName":"storage.googleapis.com","methodName":"storage.setIamPolicy","authenticationInfo":{"principalEmail":"release-auditor@enterprise.example.test"},"resourceName":"//storage.googleapis.com/projects/_/buckets/q4-drafts","status":{"code":0},"serviceData":{"policyDelta":{"bindingDeltas":[{"action":"ADD","role":"roles/storage.admin","member":"user:vendor.ops@external.example.test"}]}}}}},
+        {"source":"gcp_audit","raw":{"timestamp":"2026-03-17T09:07:00.000Z","insertId":"evaluation-1-use","logName":"projects/gsl-eval-europe/logs/cloudaudit.googleapis.com%2Fdata_access","resource":{"labels":{"project_id":"gsl-eval-europe"}},"protoPayload":{"@type":"type.googleapis.com/google.cloud.audit.AuditLog","serviceName":"storage.googleapis.com","methodName":"storage.objects.get","authenticationInfo":{"principalEmail":"vendor.ops@external.example.test"},"resourceName":"projects/_/buckets/q4-drafts/objects/pricing.csv","status":{"code":0},"authorizationInfo":[{"permission":"storage.objects.get","resource":"projects/_/buckets/q4-drafts/objects/pricing.csv","granted":true}]}}}
+      ]
+    },
+    {
+      "case": "alternate_audit_envelope",
+      "malicious": true,
+      "expected_gsl020": true,
+      "purpose": "The metadata envelope and a case variant of the principal are used.",
+      "events": [
+        {"source":"gcp_iam","raw":{"timestamp":"2026-03-17T09:00:00.000Z","insertId":"evaluation-2-grant","logName":"projects/gsl-eval-europe/logs/cloudaudit.googleapis.com%2Factivity","resource":{"labels":{"project_id":"gsl-eval-europe"}},"protoPayload":{"@type":"type.googleapis.com/google.cloud.audit.AuditLog","serviceName":"cloudresourcemanager.googleapis.com","methodName":"google.iam.v1.IAMPolicy.SetIamPolicy","authenticationInfo":{"principalEmail":"release-auditor@enterprise.example.test"},"resourceName":"projects/gsl-eval-europe","status":{"code":0},"metadata":{"policyDelta":{"bindingDeltas":[{"action":"ADD","role":"roles/storage.admin","member":"user:vendor.ops@external.example.test"}]}}}}},
+        {"source":"gcp_audit","raw":{"timestamp":"2026-03-17T09:07:00.000Z","insertId":"evaluation-2-use","logName":"projects/gsl-eval-europe/logs/cloudaudit.googleapis.com%2Fdata_access","resource":{"labels":{"project_id":"gsl-eval-europe"}},"protoPayload":{"@type":"type.googleapis.com/google.cloud.audit.AuditLog","serviceName":"storage.googleapis.com","methodName":"storage.objects.get","authenticationInfo":{"principalEmail":"VENDOR.OPS@EXTERNAL.EXAMPLE.TEST"},"resourceName":"projects/_/buckets/q4-drafts/objects/pricing.csv","status":{"code":0},"authorizationInfo":[{"permission":"storage.objects.get","resource":"projects/_/buckets/q4-drafts/objects/pricing.csv","granted":true}]}}}
+      ]
+    },
+    {
+      "case": "multi_binding_grant",
+      "malicious": true,
+      "expected_gsl020": true,
+      "purpose": "Other changes appear in the same policy delta.",
+      "events": [
+        {"source":"gcp_iam","raw":{"timestamp":"2026-03-17T09:00:00.000Z","insertId":"evaluation-3-grant","logName":"projects/gsl-eval-europe/logs/cloudaudit.googleapis.com%2Factivity","resource":{"labels":{"project_id":"gsl-eval-europe"}},"protoPayload":{"@type":"type.googleapis.com/google.cloud.audit.AuditLog","serviceName":"cloudresourcemanager.googleapis.com","methodName":"google.iam.v1.IAMPolicy.SetIamPolicy","authenticationInfo":{"principalEmail":"release-auditor@enterprise.example.test"},"resourceName":"projects/gsl-eval-europe","status":{"code":0},"serviceData":{"policyDelta":{"bindingDeltas":[{"action":"ADD","role":"roles/storage.admin","member":"user:vendor.ops@external.example.test"},{"action":"REMOVE","role":"roles/storage.admin","member":"user:job@internal.example.test"}]}}}}},
+        {"source":"gcp_audit","raw":{"timestamp":"2026-03-17T09:07:00.000Z","insertId":"evaluation-3-use","logName":"projects/gsl-eval-europe/logs/cloudaudit.googleapis.com%2Fdata_access","resource":{"labels":{"project_id":"gsl-eval-europe"}},"protoPayload":{"@type":"type.googleapis.com/google.cloud.audit.AuditLog","serviceName":"storage.googleapis.com","methodName":"storage.objects.get","authenticationInfo":{"principalEmail":"vendor.ops@external.example.test"},"resourceName":"projects/_/buckets/q4-drafts/objects/pricing.csv","status":{"code":0},"authorizationInfo":[{"permission":"storage.objects.get","resource":"projects/_/buckets/q4-drafts/objects/pricing.csv","granted":true}]}}}
+      ]
+    },
+    {
+      "case": "service_account_grant",
+      "malicious": true,
+      "expected_gsl020": true,
+      "purpose": "A named service account uses a project role.",
+      "events": [
+        {"source":"gcp_iam","raw":{"timestamp":"2026-03-17T09:00:00.000Z","insertId":"evaluation-4-grant","logName":"projects/gsl-eval-europe/logs/cloudaudit.googleapis.com%2Factivity","resource":{"labels":{"project_id":"gsl-eval-europe"}},"protoPayload":{"@type":"type.googleapis.com/google.cloud.audit.AuditLog","serviceName":"cloudresourcemanager.googleapis.com","methodName":"google.iam.v1.IAMPolicy.SetIamPolicy","authenticationInfo":{"principalEmail":"release-auditor@enterprise.example.test"},"resourceName":"projects/gsl-eval-europe","status":{"code":0},"serviceData":{"policyDelta":{"bindingDeltas":[{"action":"ADD","role":"roles/editor","member":"serviceAccount:export@gsl-eval-europe.iam.gserviceaccount.com"}]}}}}},
+        {"source":"gcp_audit","raw":{"timestamp":"2026-03-17T09:07:00.000Z","insertId":"evaluation-4-use","logName":"projects/gsl-eval-europe/logs/cloudaudit.googleapis.com%2Fdata_access","resource":{"labels":{"project_id":"gsl-eval-europe"}},"protoPayload":{"@type":"type.googleapis.com/google.cloud.audit.AuditLog","serviceName":"storage.googleapis.com","methodName":"storage.objects.get","authenticationInfo":{"principalEmail":"export@gsl-eval-europe.iam.gserviceaccount.com"},"resourceName":"projects/_/buckets/q4-drafts/objects/pricing.csv","status":{"code":0},"authorizationInfo":[{"permission":"storage.objects.get","resource":"projects/_/buckets/q4-drafts/objects/pricing.csv","granted":true}]}}}
+      ]
+    },
+    {
+      "case": "window_boundary",
+      "malicious": true,
+      "expected_gsl020": true,
+      "purpose": "An observed use at exactly thirty minutes falls inside the window.",
+      "events": [
+        {"source":"gcp_iam","raw":{"timestamp":"2026-03-17T09:00:00.000Z","insertId":"evaluation-5-grant","logName":"projects/gsl-eval-europe/logs/cloudaudit.googleapis.com%2Factivity","resource":{"labels":{"project_id":"gsl-eval-europe"}},"protoPayload":{"@type":"type.googleapis.com/google.cloud.audit.AuditLog","serviceName":"cloudresourcemanager.googleapis.com","methodName":"google.iam.v1.IAMPolicy.SetIamPolicy","authenticationInfo":{"principalEmail":"release-auditor@enterprise.example.test"},"resourceName":"projects/gsl-eval-europe","status":{"code":0},"serviceData":{"policyDelta":{"bindingDeltas":[{"action":"ADD","role":"roles/storage.admin","member":"user:vendor.ops@external.example.test"}]}}}}},
+        {"source":"gcp_audit","raw":{"timestamp":"2026-03-17T09:30:00.000Z","insertId":"evaluation-5-use","logName":"projects/gsl-eval-europe/logs/cloudaudit.googleapis.com%2Fdata_access","resource":{"labels":{"project_id":"gsl-eval-europe"}},"protoPayload":{"@type":"type.googleapis.com/google.cloud.audit.AuditLog","serviceName":"storage.googleapis.com","methodName":"storage.objects.get","authenticationInfo":{"principalEmail":"vendor.ops@external.example.test"},"resourceName":"projects/_/buckets/q4-drafts/objects/pricing.csv","status":{"code":0},"authorizationInfo":[{"permission":"storage.objects.get","resource":"projects/_/buckets/q4-drafts/objects/pricing.csv","granted":true}]}}}
+      ]
+    },
+    {
+      "case": "delayed_access",
+      "malicious": true,
+      "expected_gsl020": false,
+      "purpose": "An adversary waits outside the window.",
+      "events": [
+        {"source":"gcp_iam","raw":{"timestamp":"2026-03-17T09:00:00.000Z","insertId":"evaluation-6-grant","logName":"projects/gsl-eval-europe/logs/cloudaudit.googleapis.com%2Factivity","resource":{"labels":{"project_id":"gsl-eval-europe"}},"protoPayload":{"@type":"type.googleapis.com/google.cloud.audit.AuditLog","serviceName":"cloudresourcemanager.googleapis.com","methodName":"google.iam.v1.IAMPolicy.SetIamPolicy","authenticationInfo":{"principalEmail":"release-auditor@enterprise.example.test"},"resourceName":"projects/gsl-eval-europe","status":{"code":0},"serviceData":{"policyDelta":{"bindingDeltas":[{"action":"ADD","role":"roles/storage.admin","member":"user:vendor.ops@external.example.test"}]}}}}},
+        {"source":"gcp_audit","raw":{"timestamp":"2026-03-17T09:45:00.000Z","insertId":"evaluation-6-use","logName":"projects/gsl-eval-europe/logs/cloudaudit.googleapis.com%2Fdata_access","resource":{"labels":{"project_id":"gsl-eval-europe"}},"protoPayload":{"@type":"type.googleapis.com/google.cloud.audit.AuditLog","serviceName":"storage.googleapis.com","methodName":"storage.objects.get","authenticationInfo":{"principalEmail":"vendor.ops@external.example.test"},"resourceName":"projects/_/buckets/q4-drafts/objects/pricing.csv","status":{"code":0},"authorizationInfo":[{"permission":"storage.objects.get","resource":"projects/_/buckets/q4-drafts/objects/pricing.csv","granted":true}]}}}
+      ]
+    },
+    {
+      "case": "conditional_access",
+      "malicious": true,
+      "expected_gsl020": false,
+      "purpose": "The evaluator does not interpret CEL.",
+      "events": [
+        {"source":"gcp_iam","raw":{"timestamp":"2026-03-17T09:00:00.000Z","insertId":"evaluation-7-grant","logName":"projects/gsl-eval-europe/logs/cloudaudit.googleapis.com%2Factivity","resource":{"labels":{"project_id":"gsl-eval-europe"}},"protoPayload":{"@type":"type.googleapis.com/google.cloud.audit.AuditLog","serviceName":"cloudresourcemanager.googleapis.com","methodName":"google.iam.v1.IAMPolicy.SetIamPolicy","authenticationInfo":{"principalEmail":"release-auditor@enterprise.example.test"},"resourceName":"projects/gsl-eval-europe","status":{"code":0},"serviceData":{"policyDelta":{"bindingDeltas":[{"action":"ADD","role":"roles/storage.admin","member":"user:vendor.ops@external.example.test","condition":{"title":"limited","expression":"request.time < timestamp('2026-04-01T00:00:00Z')"}}]}}}}},
+        {"source":"gcp_audit","raw":{"timestamp":"2026-03-17T09:07:00.000Z","insertId":"evaluation-7-use","logName":"projects/gsl-eval-europe/logs/cloudaudit.googleapis.com%2Fdata_access","resource":{"labels":{"project_id":"gsl-eval-europe"}},"protoPayload":{"@type":"type.googleapis.com/google.cloud.audit.AuditLog","serviceName":"storage.googleapis.com","methodName":"storage.objects.get","authenticationInfo":{"principalEmail":"vendor.ops@external.example.test"},"resourceName":"projects/_/buckets/q4-drafts/objects/pricing.csv","status":{"code":0},"authorizationInfo":[{"permission":"storage.objects.get","resource":"projects/_/buckets/q4-drafts/objects/pricing.csv","granted":true}]}}}
+      ]
+    },
+    {
+      "case": "approved_break_glass",
+      "malicious": false,
+      "expected_gsl020": true,
+      "purpose": "An approved emergency administrator uses a sensitive grant.",
+      "events": [
+        {"source":"gcp_iam","raw":{"timestamp":"2026-03-17T09:00:00.000Z","insertId":"evaluation-8-grant","logName":"projects/gsl-eval-europe/logs/cloudaudit.googleapis.com%2Factivity","resource":{"labels":{"project_id":"gsl-eval-europe"}},"protoPayload":{"@type":"type.googleapis.com/google.cloud.audit.AuditLog","serviceName":"cloudresourcemanager.googleapis.com","methodName":"google.iam.v1.IAMPolicy.SetIamPolicy","authenticationInfo":{"principalEmail":"breakglass-reviewer@enterprise.example.test"},"resourceName":"projects/gsl-eval-europe","status":{"code":0},"serviceData":{"policyDelta":{"bindingDeltas":[{"action":"ADD","role":"roles/owner","member":"user:vendor.ops@external.example.test"}]}}}}},
+        {"source":"gcp_audit","raw":{"timestamp":"2026-03-17T09:07:00.000Z","insertId":"evaluation-8-use","logName":"projects/gsl-eval-europe/logs/cloudaudit.googleapis.com%2Fdata_access","resource":{"labels":{"project_id":"gsl-eval-europe"}},"protoPayload":{"@type":"type.googleapis.com/google.cloud.audit.AuditLog","serviceName":"storage.googleapis.com","methodName":"storage.objects.get","authenticationInfo":{"principalEmail":"vendor.ops@external.example.test"},"resourceName":"projects/_/buckets/q4-drafts/objects/pricing.csv","status":{"code":0},"authorizationInfo":[{"permission":"storage.objects.get","resource":"projects/_/buckets/q4-drafts/objects/pricing.csv","granted":true}]}}}
+      ]
+    },
+    {
+      "case": "routine_read_only_deploy",
+      "malicious": false,
+      "expected_gsl020": false,
+      "purpose": "An automated reader retrieves its artifact.",
+      "events": [
+        {"source":"gcp_iam","raw":{"timestamp":"2026-03-17T09:00:00.000Z","insertId":"evaluation-9-grant","logName":"projects/gsl-eval-europe/logs/cloudaudit.googleapis.com%2Factivity","resource":{"labels":{"project_id":"gsl-eval-europe"}},"protoPayload":{"@type":"type.googleapis.com/google.cloud.audit.AuditLog","serviceName":"cloudresourcemanager.googleapis.com","methodName":"google.iam.v1.IAMPolicy.SetIamPolicy","authenticationInfo":{"principalEmail":"release-auditor@enterprise.example.test"},"resourceName":"projects/gsl-eval-europe","status":{"code":0},"serviceData":{"policyDelta":{"bindingDeltas":[{"action":"ADD","role":"roles/storage.objectViewer","member":"user:job@internal.example.test"}]}}}}},
+        {"source":"gcp_audit","raw":{"timestamp":"2026-03-17T09:07:00.000Z","insertId":"evaluation-9-use","logName":"projects/gsl-eval-europe/logs/cloudaudit.googleapis.com%2Fdata_access","resource":{"labels":{"project_id":"gsl-eval-europe"}},"protoPayload":{"@type":"type.googleapis.com/google.cloud.audit.AuditLog","serviceName":"storage.googleapis.com","methodName":"storage.objects.get","authenticationInfo":{"principalEmail":"job@internal.example.test"},"resourceName":"projects/_/buckets/q4-drafts/objects/pricing.csv","status":{"code":0},"authorizationInfo":[{"permission":"storage.objects.get","resource":"projects/_/buckets/q4-drafts/objects/pricing.csv","granted":true}]}}}
+      ]
+    },
+    {
+      "case": "different_beneficiary",
+      "malicious": false,
+      "expected_gsl020": false,
+      "purpose": "The activity was performed by an unrelated principal.",
+      "events": [
+        {"source":"gcp_iam","raw":{"timestamp":"2026-03-17T09:00:00.000Z","insertId":"evaluation-10-grant","logName":"projects/gsl-eval-europe/logs/cloudaudit.googleapis.com%2Factivity","resource":{"labels":{"project_id":"gsl-eval-europe"}},"protoPayload":{"@type":"type.googleapis.com/google.cloud.audit.AuditLog","serviceName":"cloudresourcemanager.googleapis.com","methodName":"google.iam.v1.IAMPolicy.SetIamPolicy","authenticationInfo":{"principalEmail":"release-auditor@enterprise.example.test"},"resourceName":"projects/gsl-eval-europe","status":{"code":0},"serviceData":{"policyDelta":{"bindingDeltas":[{"action":"ADD","role":"roles/storage.admin","member":"user:vendor.ops@external.example.test"}]}}}}},
+        {"source":"gcp_audit","raw":{"timestamp":"2026-03-17T09:07:00.000Z","insertId":"evaluation-10-use","logName":"projects/gsl-eval-europe/logs/cloudaudit.googleapis.com%2Fdata_access","resource":{"labels":{"project_id":"gsl-eval-europe"}},"protoPayload":{"@type":"type.googleapis.com/google.cloud.audit.AuditLog","serviceName":"storage.googleapis.com","methodName":"storage.objects.get","authenticationInfo":{"principalEmail":"job@internal.example.test"},"resourceName":"projects/_/buckets/q4-drafts/objects/pricing.csv","status":{"code":0},"authorizationInfo":[{"permission":"storage.objects.get","resource":"projects/_/buckets/q4-drafts/objects/pricing.csv","granted":true}]}}}
+      ]
+    },
+    {
+      "case": "revoked_before_read",
+      "malicious": false,
+      "expected_gsl020": false,
+      "purpose": "The role is revoked before a read under existing access.",
+      "events": [
+        {"source":"gcp_iam","raw":{"timestamp":"2026-03-17T09:00:00.000Z","insertId":"evaluation-11-grant","logName":"projects/gsl-eval-europe/logs/cloudaudit.googleapis.com%2Factivity","resource":{"labels":{"project_id":"gsl-eval-europe"}},"protoPayload":{"@type":"type.googleapis.com/google.cloud.audit.AuditLog","serviceName":"cloudresourcemanager.googleapis.com","methodName":"google.iam.v1.IAMPolicy.SetIamPolicy","authenticationInfo":{"principalEmail":"release-auditor@enterprise.example.test"},"resourceName":"projects/gsl-eval-europe","status":{"code":0},"serviceData":{"policyDelta":{"bindingDeltas":[{"action":"ADD","role":"roles/storage.admin","member":"user:vendor.ops@external.example.test"}]}}}}},
+        {"source":"gcp_iam","raw":{"timestamp":"2026-03-17T09:03:00.000Z","insertId":"evaluation-11-remove","logName":"projects/gsl-eval-europe/logs/cloudaudit.googleapis.com%2Factivity","resource":{"labels":{"project_id":"gsl-eval-europe"}},"protoPayload":{"@type":"type.googleapis.com/google.cloud.audit.AuditLog","serviceName":"cloudresourcemanager.googleapis.com","methodName":"google.iam.v1.IAMPolicy.SetIamPolicy","authenticationInfo":{"principalEmail":"release-auditor@enterprise.example.test"},"resourceName":"projects/gsl-eval-europe","status":{"code":0},"serviceData":{"policyDelta":{"bindingDeltas":[{"action":"REMOVE","role":"roles/storage.admin","member":"user:vendor.ops@external.example.test"}]}}}}},
+        {"source":"gcp_audit","raw":{"timestamp":"2026-03-17T09:07:00.000Z","insertId":"evaluation-11-use","logName":"projects/gsl-eval-europe/logs/cloudaudit.googleapis.com%2Fdata_access","resource":{"labels":{"project_id":"gsl-eval-europe"}},"protoPayload":{"@type":"type.googleapis.com/google.cloud.audit.AuditLog","serviceName":"storage.googleapis.com","methodName":"storage.objects.get","authenticationInfo":{"principalEmail":"vendor.ops@external.example.test"},"resourceName":"projects/_/buckets/q4-drafts/objects/pricing.csv","status":{"code":0},"authorizationInfo":[{"permission":"storage.objects.get","resource":"projects/_/buckets/q4-drafts/objects/pricing.csv","granted":true}]}}}
+      ]
+    },
+    {
+      "case": "access_before_grant",
+      "malicious": false,
+      "expected_gsl020": false,
+      "purpose": "The only read predates the role change.",
+      "events": [
+        {"source":"gcp_iam","raw":{"timestamp":"2026-03-17T09:10:00.000Z","insertId":"evaluation-12-grant","logName":"projects/gsl-eval-europe/logs/cloudaudit.googleapis.com%2Factivity","resource":{"labels":{"project_id":"gsl-eval-europe"}},"protoPayload":{"@type":"type.googleapis.com/google.cloud.audit.AuditLog","serviceName":"cloudresourcemanager.googleapis.com","methodName":"google.iam.v1.IAMPolicy.SetIamPolicy","authenticationInfo":{"principalEmail":"release-auditor@enterprise.example.test"},"resourceName":"projects/gsl-eval-europe","status":{"code":0},"serviceData":{"policyDelta":{"bindingDeltas":[{"action":"ADD","role":"roles/storage.admin","member":"user:vendor.ops@external.example.test"}]}}}}},
+        {"source":"gcp_audit","raw":{"timestamp":"2026-03-17T09:02:00.000Z","insertId":"evaluation-12-use","logName":"projects/gsl-eval-europe/logs/cloudaudit.googleapis.com%2Fdata_access","resource":{"labels":{"project_id":"gsl-eval-europe"}},"protoPayload":{"@type":"type.googleapis.com/google.cloud.audit.AuditLog","serviceName":"storage.googleapis.com","methodName":"storage.objects.get","authenticationInfo":{"principalEmail":"vendor.ops@external.example.test"},"resourceName":"projects/_/buckets/q4-drafts/objects/pricing.csv","status":{"code":0},"authorizationInfo":[{"permission":"storage.objects.get","resource":"projects/_/buckets/q4-drafts/objects/pricing.csv","granted":true}]}}}
+      ]
+    },
+    {
+      "case": "denied_activity",
+      "malicious": false,
+      "expected_gsl020": false,
+      "purpose": "The access attempt was denied.",
+      "events": [
+        {"source":"gcp_iam","raw":{"timestamp":"2026-03-17T09:00:00.000Z","insertId":"evaluation-13-grant","logName":"projects/gsl-eval-europe/logs/cloudaudit.googleapis.com%2Factivity","resource":{"labels":{"project_id":"gsl-eval-europe"}},"protoPayload":{"@type":"type.googleapis.com/google.cloud.audit.AuditLog","serviceName":"cloudresourcemanager.googleapis.com","methodName":"google.iam.v1.IAMPolicy.SetIamPolicy","authenticationInfo":{"principalEmail":"release-auditor@enterprise.example.test"},"resourceName":"projects/gsl-eval-europe","status":{"code":0},"serviceData":{"policyDelta":{"bindingDeltas":[{"action":"ADD","role":"roles/storage.admin","member":"user:vendor.ops@external.example.test"}]}}}}},
+        {"source":"gcp_audit","raw":{"timestamp":"2026-03-17T09:07:00.000Z","insertId":"evaluation-13-use","logName":"projects/gsl-eval-europe/logs/cloudaudit.googleapis.com%2Fdata_access","resource":{"labels":{"project_id":"gsl-eval-europe"}},"protoPayload":{"@type":"type.googleapis.com/google.cloud.audit.AuditLog","serviceName":"storage.googleapis.com","methodName":"storage.objects.get","authenticationInfo":{"principalEmail":"vendor.ops@external.example.test"},"resourceName":"projects/_/buckets/q4-drafts/objects/pricing.csv","status":{"code":7},"authorizationInfo":[{"permission":"storage.objects.get","resource":"projects/_/buckets/q4-drafts/objects/pricing.csv","granted":false}]}}}
+      ]
+    },
+    {
+      "case": "cross_project_noise",
+      "malicious": false,
+      "expected_gsl020": false,
+      "purpose": "The same identity acts in a separate project.",
+      "events": [
+        {"source":"gcp_iam","raw":{"timestamp":"2026-03-17T09:00:00.000Z","insertId":"evaluation-14-grant","logName":"projects/gsl-eval-europe/logs/cloudaudit.googleapis.com%2Factivity","resource":{"labels":{"project_id":"gsl-eval-europe"}},"protoPayload":{"@type":"type.googleapis.com/google.cloud.audit.AuditLog","serviceName":"cloudresourcemanager.googleapis.com","methodName":"google.iam.v1.IAMPolicy.SetIamPolicy","authenticationInfo":{"principalEmail":"release-auditor@enterprise.example.test"},"resourceName":"projects/gsl-eval-europe","status":{"code":0},"serviceData":{"policyDelta":{"bindingDeltas":[{"action":"ADD","role":"roles/storage.admin","member":"user:vendor.ops@external.example.test"}]}}}}},
+        {"source":"gcp_audit","raw":{"timestamp":"2026-03-17T09:07:00.000Z","insertId":"evaluation-14-use","logName":"projects/gsl-eval-america/logs/cloudaudit.googleapis.com%2Fdata_access","resource":{"labels":{"project_id":"gsl-eval-america"}},"protoPayload":{"@type":"type.googleapis.com/google.cloud.audit.AuditLog","serviceName":"storage.googleapis.com","methodName":"storage.objects.get","authenticationInfo":{"principalEmail":"vendor.ops@external.example.test"},"resourceName":"projects/_/buckets/q4-drafts/objects/pricing.csv","status":{"code":0},"authorizationInfo":[{"permission":"storage.objects.get","resource":"projects/_/buckets/q4-drafts/objects/pricing.csv","granted":true}]}}}
+      ]
+    },
+    {
+      "case": "outside_bucket_scope",
+      "malicious": false,
+      "expected_gsl020": false,
+      "purpose": "A similarly named bucket is outside the grant.",
+      "events": [
+        {"source":"gcp_audit","raw":{"timestamp":"2026-03-17T09:00:00.000Z","insertId":"evaluation-15-grant","logName":"projects/gsl-eval-europe/logs/cloudaudit.googleapis.com%2Factivity","resource":{"labels":{"project_id":"gsl-eval-europe"}},"protoPayload":{"@type":"type.googleapis.com/google.cloud.audit.AuditLog","serviceName":"storage.googleapis.com","methodName":"storage.setIamPolicy","authenticationInfo":{"principalEmail":"release-auditor@enterprise.example.test"},"resourceName":"projects/_/buckets/q4-drafts","status":{"code":0},"serviceData":{"policyDelta":{"bindingDeltas":[{"action":"ADD","role":"roles/storage.admin","member":"user:vendor.ops@external.example.test"}]}}}}},
+        {"source":"gcp_audit","raw":{"timestamp":"2026-03-17T09:07:00.000Z","insertId":"evaluation-15-use","logName":"projects/gsl-eval-europe/logs/cloudaudit.googleapis.com%2Fdata_access","resource":{"labels":{"project_id":"gsl-eval-europe"}},"protoPayload":{"@type":"type.googleapis.com/google.cloud.audit.AuditLog","serviceName":"storage.googleapis.com","methodName":"storage.objects.get","authenticationInfo":{"principalEmail":"vendor.ops@external.example.test"},"resourceName":"projects/_/buckets/q4-drafts-backup/objects/annual.csv","status":{"code":0},"authorizationInfo":[{"permission":"storage.objects.get","resource":"projects/_/buckets/q4-drafts-backup/objects/annual.csv","granted":true}]}}}
+      ]
+    },
+    {
+      "case": "missing_delta",
+      "malicious": false,
+      "expected_gsl020": false,
+      "purpose": "The audit entry has no binding evidence.",
+      "events": [
+        {"source":"gcp_iam","raw":{"timestamp":"2026-03-17T09:00:00.000Z","insertId":"evaluation-16-grant","logName":"projects/gsl-eval-europe/logs/cloudaudit.googleapis.com%2Factivity","resource":{"labels":{"project_id":"gsl-eval-europe"}},"protoPayload":{"@type":"type.googleapis.com/google.cloud.audit.AuditLog","serviceName":"cloudresourcemanager.googleapis.com","methodName":"google.iam.v1.IAMPolicy.SetIamPolicy","authenticationInfo":{"principalEmail":"release-auditor@enterprise.example.test"},"resourceName":"projects/gsl-eval-europe","status":{"code":0},"serviceData":{"policyDelta":{"bindingDeltas":[]}}}}},
+        {"source":"gcp_audit","raw":{"timestamp":"2026-03-17T09:07:00.000Z","insertId":"evaluation-16-use","logName":"projects/gsl-eval-europe/logs/cloudaudit.googleapis.com%2Fdata_access","resource":{"labels":{"project_id":"gsl-eval-europe"}},"protoPayload":{"@type":"type.googleapis.com/google.cloud.audit.AuditLog","serviceName":"storage.googleapis.com","methodName":"storage.objects.get","authenticationInfo":{"principalEmail":"vendor.ops@external.example.test"},"resourceName":"projects/_/buckets/q4-drafts/objects/pricing.csv","status":{"code":0},"authorizationInfo":[{"permission":"storage.objects.get","resource":"projects/_/buckets/q4-drafts/objects/pricing.csv","granted":true}]}}}
+      ]
+    },
+    {
+      "case": "denied_policy_change",
+      "malicious": false,
+      "expected_gsl020": false,
+      "purpose": "The request to grant access was denied.",
+      "events": [
+        {"source":"gcp_iam","raw":{"timestamp":"2026-03-17T09:00:00.000Z","insertId":"evaluation-17-grant","logName":"projects/gsl-eval-europe/logs/cloudaudit.googleapis.com%2Factivity","resource":{"labels":{"project_id":"gsl-eval-europe"}},"protoPayload":{"@type":"type.googleapis.com/google.cloud.audit.AuditLog","serviceName":"cloudresourcemanager.googleapis.com","methodName":"google.iam.v1.IAMPolicy.SetIamPolicy","authenticationInfo":{"principalEmail":"release-auditor@enterprise.example.test"},"resourceName":"projects/gsl-eval-europe","status":{"code":7},"serviceData":{"policyDelta":{"bindingDeltas":[{"action":"ADD","role":"roles/storage.admin","member":"user:vendor.ops@external.example.test"}]}}}}},
+        {"source":"gcp_audit","raw":{"timestamp":"2026-03-17T09:07:00.000Z","insertId":"evaluation-17-use","logName":"projects/gsl-eval-europe/logs/cloudaudit.googleapis.com%2Fdata_access","resource":{"labels":{"project_id":"gsl-eval-europe"}},"protoPayload":{"@type":"type.googleapis.com/google.cloud.audit.AuditLog","serviceName":"storage.googleapis.com","methodName":"storage.objects.get","authenticationInfo":{"principalEmail":"vendor.ops@external.example.test"},"resourceName":"projects/_/buckets/q4-drafts/objects/pricing.csv","status":{"code":0},"authorizationInfo":[{"permission":"storage.objects.get","resource":"projects/_/buckets/q4-drafts/objects/pricing.csv","granted":true}]}}}
+      ]
+    },
+    {
+      "case": "wrong_permission",
+      "malicious": false,
+      "expected_gsl020": false,
+      "purpose": "The observed permission is outside the monitored set.",
+      "events": [
+        {"source":"gcp_iam","raw":{"timestamp":"2026-03-17T09:00:00.000Z","insertId":"evaluation-18-grant","logName":"projects/gsl-eval-europe/logs/cloudaudit.googleapis.com%2Factivity","resource":{"labels":{"project_id":"gsl-eval-europe"}},"protoPayload":{"@type":"type.googleapis.com/google.cloud.audit.AuditLog","serviceName":"cloudresourcemanager.googleapis.com","methodName":"google.iam.v1.IAMPolicy.SetIamPolicy","authenticationInfo":{"principalEmail":"release-auditor@enterprise.example.test"},"resourceName":"projects/gsl-eval-europe","status":{"code":0},"serviceData":{"policyDelta":{"bindingDeltas":[{"action":"ADD","role":"roles/storage.admin","member":"user:vendor.ops@external.example.test"}]}}}}},
+        {"source":"gcp_audit","raw":{"timestamp":"2026-03-17T09:07:00.000Z","insertId":"evaluation-18-use","logName":"projects/gsl-eval-europe/logs/cloudaudit.googleapis.com%2Fdata_access","resource":{"labels":{"project_id":"gsl-eval-europe"}},"protoPayload":{"@type":"type.googleapis.com/google.cloud.audit.AuditLog","serviceName":"storage.googleapis.com","methodName":"storage.objects.get","authenticationInfo":{"principalEmail":"vendor.ops@external.example.test"},"resourceName":"projects/_/buckets/q4-drafts/objects/pricing.csv","status":{"code":0},"authorizationInfo":[{"permission":"storage.buckets.get","resource":"projects/_/buckets/q4-drafts/objects/pricing.csv","granted":true}]}}}
+      ]
+    },
+    {
+      "case": "failed_permission_check",
+      "malicious": false,
+      "expected_gsl020": false,
+      "purpose": "The specific permission check was not granted.",
+      "events": [
+        {"source":"gcp_iam","raw":{"timestamp":"2026-03-17T09:00:00.000Z","insertId":"evaluation-19-grant","logName":"projects/gsl-eval-europe/logs/cloudaudit.googleapis.com%2Factivity","resource":{"labels":{"project_id":"gsl-eval-europe"}},"protoPayload":{"@type":"type.googleapis.com/google.cloud.audit.AuditLog","serviceName":"cloudresourcemanager.googleapis.com","methodName":"google.iam.v1.IAMPolicy.SetIamPolicy","authenticationInfo":{"principalEmail":"release-auditor@enterprise.example.test"},"resourceName":"projects/gsl-eval-europe","status":{"code":0},"serviceData":{"policyDelta":{"bindingDeltas":[{"action":"ADD","role":"roles/storage.admin","member":"user:vendor.ops@external.example.test"}]}}}}},
+        {"source":"gcp_audit","raw":{"timestamp":"2026-03-17T09:07:00.000Z","insertId":"evaluation-19-use","logName":"projects/gsl-eval-europe/logs/cloudaudit.googleapis.com%2Fdata_access","resource":{"labels":{"project_id":"gsl-eval-europe"}},"protoPayload":{"@type":"type.googleapis.com/google.cloud.audit.AuditLog","serviceName":"storage.googleapis.com","methodName":"storage.objects.get","authenticationInfo":{"principalEmail":"vendor.ops@external.example.test"},"resourceName":"projects/_/buckets/q4-drafts/objects/pricing.csv","status":{"code":0},"authorizationInfo":[{"permission":"storage.objects.get","resource":"projects/_/buckets/q4-drafts/objects/pricing.csv","granted":false}]}}}
+      ]
+    }
+  ]
+}

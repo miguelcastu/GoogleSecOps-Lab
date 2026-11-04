@@ -4,12 +4,14 @@ import json
 import re
 from collections import defaultdict, deque
 from collections.abc import Iterable
-from dataclasses import dataclass
+from dataclasses import dataclass, field, replace
 from datetime import datetime, timedelta
 from importlib.resources import files
 from itertools import product
 from typing import Any
 
+from .iam import RULE as IAM_RULE
+from .iam import grant_matches
 from .model import Event, Json, digest
 
 SEVERITIES = {"medium": 55, "high": 80}
@@ -63,6 +65,7 @@ class Alert:
     subject: str
     timestamp: str
     event_ids: list[str]
+    context: Json = field(default_factory=dict)
 
 
 def groups(event: Event, paths: list[str]) -> set[tuple[str, ...]]:
@@ -78,6 +81,16 @@ def evaluate(events: Iterable[Event], rules: list[Json] | None = None) -> list[A
         key=lambda event: (event.timestamp, event.id),
     )
     alerts: list[Alert] = []
+    if rules is None:
+        for grant, activity, evidence in grant_matches(ordered):
+            alert = make_alert(IAM_RULE, evidence["beneficiary"], [grant, activity])
+            identity = [
+                grant.id,
+                evidence["beneficiary"],
+                evidence["role"],
+                evidence["grant_resource"],
+            ]
+            alerts.append(replace(alert, id=digest([IAM_RULE["id"], *identity]), context=evidence))
     for rule in catalog() if rules is None else rules:
         windows: dict[tuple[str, ...], deque[tuple[datetime, Event]]] = defaultdict(deque)
         last_alert: dict[tuple[str, ...], datetime] = {}

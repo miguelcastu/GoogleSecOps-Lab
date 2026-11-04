@@ -7,8 +7,11 @@ import sys
 from datetime import UTC, datetime
 from pathlib import Path
 
+from .adapters import parse
 from .dashboard import make_server
 from .detection import catalog
+from .iam import RULE as IAM_RULE
+from .iam_lab import demo_events, evaluate_corpus
 from .ingestion import MAX_BATCH, read_jsonl
 from .model import Json
 from .reports import export, summary
@@ -28,6 +31,12 @@ def parser() -> argparse.ArgumentParser:
         "demo", help="Generate, ingest, replay and validate the safe fixture suite"
     )
     demo.add_argument("--out", type=Path, default=Path("var/demo"))
+    iam_demo = commands.add_parser("iam-demo", help="Replay two synthetic IAM investigations")
+    iam_demo.add_argument("--out", type=Path, default=Path("var/iam-demo"))
+    benchmark = commands.add_parser(
+        "evaluate-iam", help="Score IAM detections on the labeled corpus"
+    )
+    benchmark.add_argument("--out", type=Path, default=Path("var/iam-evaluation.json"))
     generate = commands.add_parser("generate", help="Generate bounded synthetic JSONL")
     generate.add_argument(
         "--scenario", choices=["all", *EXTRAS, *(r["scenario"] for r in catalog())], default="all"
@@ -146,6 +155,15 @@ def run(args: argparse.Namespace) -> int:
         case "replay":
             with database(args.db) as conn:
                 emit(replay(conn))
+        case "iam-demo":
+            return run_iam_demo(args.db, args.out)
+        case "evaluate-iam":
+            evaluation = evaluate_corpus()
+            with database(args.db) as conn:
+                set_meta(conn, "iam_evaluation", evaluation)
+            export(args.out, evaluation)
+            emit(evaluation)
+            return int(evaluation["passed"] != evaluation["total"])
         case "demo":
             fixtures, validation = suite()
             target = args.out / "events.jsonl"
@@ -199,6 +217,42 @@ def run(args: argparse.Namespace) -> int:
 
             emit(pull_once(args.db, args.project, args.limit))
     return 0
+
+
+def run_iam_demo(db: Path, output: Path) -> int:
+    fixtures = demo_events()
+    target = output / "events.jsonl"
+    write_jsonl(target, fixtures)
+    evaluation = evaluate_corpus()
+    with database(db) as conn:
+        ingested = ingest(conn, target, MAX_BATCH)
+        set_meta(conn, "iam_evaluation", evaluation)
+    with database(db) as conn:
+        replayed = replay(conn)
+    grant = parse(fixtures[0]["source"], fixtures[0]["origin"], fixtures[0]["raw"])
+    with database(db, readonly=True) as conn:
+        match = conn.execute(
+            """SELECT case_id FROM alerts
+               WHERE rule_id=? AND json_extract(document,'$.context.grant_event_id')=?""",
+            (IAM_RULE["id"], grant.id),
+        ).fetchone()
+        if match is None:
+            raise ValueError("IAM scenario did not produce the expected investigation")
+        case = get_case(conn, match["case_id"])
+    export(output / "investigation.json", case, case=True)
+    export(output / "investigation.md", case, case=True)
+    export(output / "evaluation.json", evaluation)
+    emit(
+        {
+            "ingestion": ingested,
+            "replay": replayed,
+            "iam_case": case["id"],
+            "investigation_path": f"/cases/{case['id']}",
+            "evaluation": evaluation["metrics"],
+            "out": str(output),
+        }
+    )
+    return int(evaluation["passed"] != evaluation["total"] or ingested["rejected"] > 0)
 
 
 def main(argv: list[str] | None = None) -> int:

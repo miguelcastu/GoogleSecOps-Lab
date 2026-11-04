@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import cast
 
 from .model import Json
-from .reports import summary
+from .reports import case_markdown, summary
 from .storage import case_detail, database
 
 STYLE = """
@@ -29,6 +29,10 @@ th{font-size:11px;color:var(--muted);letter-spacing:.8px;text-transform:uppercas
 .badge{border:1px solid var(--line);display:inline-block;border-radius:100px;padding:2px 9px;margin:2px 4px 2px 0;font-size:12px}
 .high{color:var(--hot)}.medium{color:var(--med)}.good{color:var(--cyan)}
 code,pre{font-family:ui-monospace,monospace}pre{white-space:pre-wrap;overflow-wrap:anywhere}
+.feature{border-color:#357574;background:linear-gradient(120deg,#112b34,var(--panel) 62%)}
+.feature h2{font-size:23px}.feature .eyebrow{margin-bottom:5px}.steps{margin:12px 0 0;padding-left:22px}
+.steps li{margin:8px 0}.steps code{overflow-wrap:anywhere}details{margin-top:12px}
+summary{cursor:pointer;color:var(--cyan)}.callout{color:var(--med);border-left:3px solid;padding-left:10px}
 @media(max-width:850px){.columns{grid-template-columns:1fr}.tiles{grid-template-columns:1fr 1fr}main{padding:22px 14px}h1{font-size:32px}}
 """
 
@@ -159,7 +163,9 @@ def overview(doc: Json) -> str:
     return page(
         "SOC Operations Console",
         "GoogleSecOps-Lab / Operations",
-        f"<div class='tiles'>{tiles}</div><div class='columns'>"
+        f"<div class='tiles'>{tiles}</div>"
+        + iam_overview(doc)
+        + "<div class='columns'>"
         + section("Incident queue", queue)
         + section("Pipeline health", health)
         + "</div><div class='columns'>"
@@ -180,11 +186,104 @@ def overview(doc: Json) -> str:
     )
 
 
+def iam_overview(doc: Json) -> str:
+    evaluation = doc["iam_evaluation"]
+    cases = doc["iam_cases"]
+    if not (evaluation or cases):
+        return ""
+    links = "".join(
+        f"<li>{case_link(item['case_id'], item['subject'])} · {e(item['timestamp'][:19])} UTC</li>"
+        for item in cases
+    )
+    body = (
+        "<div class='eyebrow'>Identity detection · GSL020</div>"
+        "<p>Trace a sensitive grant to the beneficiary's observed activity.</p>"
+        + (f"<ul class='steps'>{links}</ul>" if links else "")
+    )
+    if evaluation:
+
+        def pct(value: float | None) -> str:
+            return f"{value:.1%}" if value is not None else "—"
+
+        scores = table(
+            ("Rule", "Precision", "Recall", "True positives", "False positives", "Missed"),
+            (
+                [
+                    e(rule),
+                    pct(score["precision"]),
+                    pct(score["recall"]),
+                    e(score["tp"]),
+                    e(score["fp"]),
+                    e(score["fn"]),
+                ]
+                for rule, score in evaluation["metrics"].items()
+            ),
+        )
+        examples = table(
+            ("Scenario", "Ground truth", "GSL020", "Evidence"),
+            (
+                [
+                    e(item["case"]),
+                    "Malicious" if item["malicious"] else "Benign",
+                    "Alert" if item["observed"]["GSL020"] else "No alert",
+                    e(item["purpose"]),
+                ]
+                for item in evaluation["cases"]
+            ),
+        )
+        body += (
+            f"<details><summary>Evaluation · {evaluation['total']} synthetic scenarios</summary>"
+            + scores
+            + examples
+            + "</details>"
+        )
+    return section("IAM grant investigations", body, "feature wide")
+
+
+def iam_investigation(case: Json) -> str:
+    panels = []
+    for alert in case["alerts"]:
+        context = alert.get("context", {})
+        if not context.get("grant_event_id"):
+            continue
+        review = (
+            "<p class='callout'>Needs review. The current replay no longer confirms this sequence. "
+            "Earlier evidence is retained.</p>"
+            if alert.get("correlation_state") == "needs_review"
+            else ""
+        )
+        panels.append(
+            review + f"<p><b>Project</b> {e(context['project'])} · "
+            f"<b>Time to observed use</b> {e(context['elapsed_seconds'])} seconds</p>"
+            "<ol class='steps'>"
+            f"<li><b>Grant.</b> {e(context['grant_actor'] or 'Actor unavailable')} granted "
+            f"<code>{e(context['role'])}</code> to <code>{e(context['beneficiary'])}</code> "
+            f"on <code>{e(context['grant_resource'])}</code>. "
+            f"<a href='#event-{e(context['grant_event_id'])}'>Grant evidence</a></li>"
+            f"<li><b>Activity.</b> The beneficiary used <code>{e(context['permission'])}</code> "
+            f"on <code>{e(context['activity_resource'])}</code>. "
+            f"<a href='#event-{e(context['activity_event_id'])}'>Activity evidence</a></li></ol>"
+            "<p class='muted'>The sequence shows observed use after the grant. "
+            "Another binding may also have authorized the activity.</p>"
+        )
+    return section("Why this case fired", "".join(panels), "feature wide") if panels else ""
+
+
 def investigation(case: Json) -> str:
     evidence = table(
-        ("UTC time", "Source", "Origin", "Operation"),
+        ("UTC time", "Source", "Origin", "Operation and evidence"),
         (
-            [e(x["timestamp"]), e(x["source"]), e(x["origin"]), e(x["product_event_type"])]
+            [
+                e(x["timestamp"]),
+                e(x["source"]),
+                e(x["origin"]),
+                f"<span id='event-{e(x['id'])}'>{e(x['product_event_type'])}</span>"
+                + "".join(
+                    f"<br><small>{e(change['action'])} · {e(change['role'])} · {e(change['member'])}"
+                    f"{' · conditional' if change['condition'] is not None else ''}</small>"
+                    for change in x.get("iam_changes", [])
+                ),
+            ]
             for x in case["timeline"]
         ),
     )
@@ -210,6 +309,8 @@ def investigation(case: Json) -> str:
         "Investigation / " + case["id"][:12],
         "<p><a href='/'>← Operations overview</a></p>"
         f"<p>{e(case['status'])} · risk {e(case['risk'])} · {e(case['category'])}</p>"
+        + f"<p><a href='/cases/{e(case['id'])}/report.md' download='case-{e(case['id'][:12])}.md'>Download case report</a></p>"
+        + iam_investigation(case)
         + section("Evidence timeline", evidence, "wide")
         + section("Dry-run playbook", alert_html, "wide")
         + section("Analyst notes", f"<ul>{notes}</ul>" if notes else "<p>No notes yet.</p>"),
@@ -250,9 +351,13 @@ def make_server(path: Path, port: int) -> ThreadingHTTPServer:
                         self.respond(200, json.dumps({"database": "reachable"}), "application/json")
                         return
                     if self.path.startswith("/cases/"):
-                        case = case_detail(conn, self.path.removeprefix("/cases/"))
+                        case_id, _, subpage = self.path.removeprefix("/cases/").partition("/")
+                        case = case_detail(conn, case_id) if subpage in ("", "report.md") else None
                         if case:
-                            self.respond(200, investigation(case))
+                            if subpage == "report.md":
+                                self.respond(200, case_markdown(case) + "\n", "text/plain")
+                            else:
+                                self.respond(200, investigation(case))
                             return
             except sqlite3.Error:
                 self.respond(503, "Laboratory database is unavailable", "text/plain")

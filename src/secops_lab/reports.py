@@ -6,6 +6,7 @@ from pathlib import Path
 
 from .adapters import ADAPTERS
 from .detection import catalog
+from .iam import RULE as IAM_RULE
 from .model import Json
 from .storage import meta, rows
 
@@ -16,7 +17,7 @@ def summary(conn: sqlite3.Connection) -> Json:
         key: sum(item[key] for item in ingest) for key in ("accepted", "duplicate", "rejected")
     }
     attempts = sum(totals.values())
-    rule_catalog = catalog()
+    rule_catalog = [*catalog(), IAM_RULE]
     techniques = sorted({t for rule in rule_catalog for t in rule["attack"]})
     counts = rows(
         conn, "SELECT rule_id,count(*) AS total FROM alerts GROUP BY rule_id ORDER BY rule_id"
@@ -55,6 +56,14 @@ def summary(conn: sqlite3.Connection) -> Json:
         ),
         "last_replay": meta(conn, "last_replay"),
         "validation": meta(conn, "validation"),
+        "iam_evaluation": meta(conn, "iam_evaluation"),
+        "iam_cases": rows(
+            conn,
+            """SELECT alerts.case_id, cases.subject, alerts.timestamp
+               FROM alerts JOIN cases ON cases.id=alerts.case_id
+               WHERE alerts.rule_id=? ORDER BY alerts.timestamp DESC,alerts.id LIMIT 5""",
+            (IAM_RULE["id"],),
+        ),
         "health": {"database": "reachable", "mode": "local-python", "native_validation": "PENDING"},
     }
 
@@ -111,6 +120,16 @@ def case_markdown(case: Json) -> str:
     lines.extend(["", "## Alerts and recommendations", ""])
     for alert in case["alerts"]:
         lines.append(f"- {alert['rule_id']} {alert['title']} ({alert['severity']})")
+        if alert.get("context", {}).get("grant_event_id"):
+            context = alert["context"]
+            lines += [
+                f"  - Replay assessment: {alert['correlation_state']}",
+                f"  - Grant actor: {safe_md(str(context['grant_actor'] or 'unavailable'))}",
+                f"  - Beneficiary: {safe_md(context['beneficiary'])}",
+                f"  - Role and scope: {safe_md(context['role'])} on {safe_md(context['grant_resource'])}",
+                f"  - Observed use: {safe_md(context['permission'])} on {safe_md(context['activity_resource'])}",
+                f"  - Elapsed time: {context['elapsed_seconds']:g} seconds",
+            ]
         for entry in alert["triage"]["attack"]:
             lines.append(f"  - [{entry['id']}]({entry['url']})")
         lines.extend(f"  - Dry run: {entry}" for entry in alert["triage"]["recommendations"])

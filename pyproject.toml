@@ -4,7 +4,7 @@ build-backend = "uv_build"
 
 [project]
 name = "googlesecops-lab"
-version = "0.1.0"
+version = "0.2.0"
 description = "Local-first detection engineering and SOC laboratory"
 requires-python = ">=3.12"
 dependencies = []

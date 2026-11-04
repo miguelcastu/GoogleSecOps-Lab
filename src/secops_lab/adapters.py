@@ -1,7 +1,9 @@
 """Adapters for bounded, documented subsets of vendor export formats."""
 
+from dataclasses import asdict
 from typing import Any
 
+from .iam import binding_changes
 from .model import Event, InvalidEvent, Json, get, normalize
 
 GCP_IAM = {"iam.googleapis.com", "cloudresourcemanager.googleapis.com"}
@@ -52,7 +54,7 @@ def gcp(raw: Json) -> Json:
         src = None
     if kind == "SETTING_MODIFICATION" and not src:
         kind = "GENERIC_EVENT"
-    return dict(
+    result = dict(
         time=raw.get("timestamp"),
         id=raw.get("insertId"),
         scope=raw.get("logName"),
@@ -64,6 +66,9 @@ def gcp(raw: Json) -> Json:
         resource=get(payload, "resourceName"),
         outcome="ALLOW" if code == 0 else "BLOCK",
     )
+    if suffix == "setiampolicy" and code == 0 and isinstance(payload, dict):
+        result["iam_changes"] = [asdict(change) for change in binding_changes(payload)]
+    return result
 
 
 def workspace(raw: Json) -> Json:

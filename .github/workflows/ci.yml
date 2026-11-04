@@ -45,6 +45,7 @@ jobs:
         run: |
           uv run --no-sync pytest --junitxml=var/ci/junit.xml
           uv run --no-sync secops-lab --db var/ci/lab.sqlite demo --out var/ci/demo
+          uv run --no-sync secops-lab --db var/ci/iam.sqlite iam-demo --out var/ci/iam
       - name: Terraform formatting, validation and mock plans
         env:
           CHECKPOINT_DISABLE: "1"
@@ -62,5 +63,7 @@ jobs:
             var/ci/junit.xml
             var/ci/demo/report.*
             var/ci/demo/validation.json
+            var/ci/iam/investigation.md
+            var/ci/iam/evaluation.json
           retention-days: 7
           if-no-files-found: ignore

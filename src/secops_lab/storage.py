@@ -8,6 +8,8 @@ from pathlib import Path
 from typing import Any
 
 from .detection import Alert, evaluate
+from .iam import RULE as IAM_RULE
+from .iam import change_evidence, revocations
 from .model import Event, Json, canonical
 from .soar import enrich, group_case
 
@@ -51,7 +53,9 @@ def database(path: Path, readonly: bool = False):
     conn.row_factory = sqlite3.Row
     try:
         conn.execute("PRAGMA foreign_keys = ON")
-        if not readonly:
+        if readonly:
+            conn.execute("BEGIN")
+        else:
             conn.execute("PRAGMA journal_mode = WAL")
             conn.executescript(DDL)
         with conn:
@@ -99,6 +103,8 @@ def upsert_alert(conn: sqlite3.Connection, alert: Alert, events: list[Event]) ->
         (case_id, alert.subject, alert.playbook, alert.timestamp, triage["risk"]),
     )
     document = asdict(alert) | {"engine": "local-python", "triage": triage}
+    if alert.context.get("grant_event_id"):
+        document["correlation_state"] = "matched"
     conn.execute(
         "INSERT INTO alerts VALUES (?,?,?,?,?,?)",
         (alert.id, alert.timestamp, alert.severity, alert.rule_id, case_id, canonical(document)),
@@ -117,24 +123,93 @@ def replay(conn: sqlite3.Connection) -> Json:
         raise ValueError(f"replay exceeds {MAX_REPLAY} events; use a fresh database")
     by_id = {event.id: event for event in events}
     alerts = evaluate(events)
-    old = {row[0] for row in conn.execute("SELECT id FROM alerts")}
+    old = {
+        row["id"]: json.loads(row["document"])
+        for row in conn.execute("SELECT id,document FROM alerts ORDER BY timestamp,id")
+    }
+    episode_index: dict[tuple[str, str, str], str] = {}
+    for alert_id, document in old.items():
+        if document["rule_id"] != IAM_RULE["id"]:
+            for event_id in document["event_ids"]:
+                episode_index.setdefault(
+                    (document["rule_id"], document["subject"], event_id), alert_id
+                )
+    added = updated = 0
+    seen_iam = set()
     for alert in alerts:
-        if alert.id not in old:
+        related = alert.id if alert.id in old else None
+        if alert.rule_id == IAM_RULE["id"]:
+            seen_iam.add(alert.id)
+        elif related is None:
+            related = next(
+                (
+                    episode_index[key]
+                    for event_id in alert.event_ids
+                    if (key := (alert.rule_id, alert.subject, event_id)) in episode_index
+                ),
+                None,
+            )
+        if related is None:
             upsert_alert(conn, alert, [by_id[event_id] for event_id in alert.event_ids])
-    # Late input can shift a threshold alert. Preserve prior evidence and analyst state.
+            added += 1
+            continue
+        previous = old[related]
+        ids = set(previous["event_ids"]) | set(alert.event_ids)
+        combined = sorted(ids, key=lambda event_id: (by_id[event_id].timestamp, event_id))
+        refreshed = previous | {"event_ids": combined}
+        if alert.rule_id == IAM_RULE["id"]:
+            refreshed |= {"context": alert.context, "correlation_state": "matched"}
+        if refreshed != previous:
+            old[related] = refreshed
+            conn.execute("UPDATE alerts SET document=? WHERE id=?", (canonical(refreshed), related))
+            updated += 1
+    # Retain previously observed findings if later revocation evidence changes the result.
+    unconfirmed = [
+        (alert_id, document)
+        for alert_id, document in old.items()
+        if document["rule_id"] == IAM_RULE["id"] and alert_id not in seen_iam
+    ]
+    if unconfirmed:
+        removed = revocations(events)
+        for alert_id, document in unconfirmed:
+            context = document["context"]
+            grant = by_id[context["grant_event_id"]]
+            use = by_id[context["activity_event_id"]]
+            revoke_key = (
+                grant.origin,
+                context["project"],
+                context["grant_resource"],
+                context["role"],
+                context["beneficiary"],
+            )
+            evidence = set(document["event_ids"])
+            evidence.update(
+                event.id
+                for event in removed.get(revoke_key, [])
+                if grant.timestamp <= event.timestamp <= use.timestamp
+            )
+            ordered = sorted(evidence, key=lambda event_id: (by_id[event_id].timestamp, event_id))
+            refreshed = document | {"event_ids": ordered, "correlation_state": "needs_review"}
+            if refreshed != document:
+                conn.execute(
+                    "UPDATE alerts SET document=? WHERE id=?", (canonical(refreshed), alert_id)
+                )
+                updated += 1
     set_meta(
         conn,
         "last_replay",
         {
             "events": len(events),
             "computed": len(alerts),
-            "new": sum(alert.id not in old for alert in alerts),
+            "new": added,
+            "evidence_updated": updated,
         },
     )
     return {
         "events": len(events),
         "alerts_computed": len(alerts),
-        "alerts_added": sum(alert.id not in old for alert in alerts),
+        "alerts_added": added,
+        "alerts_updated": updated,
         "cases": conn.execute("SELECT count(*) FROM cases").fetchone()[0],
     }
 
@@ -165,7 +240,7 @@ def case_detail(conn: sqlite3.Connection, case_id: str) -> Json | None:
         )
     ]
     case["alerts"] = alerts
-    evidence = set(event_id for alert in alerts for event_id in alert["event_ids"])
+    evidence = sorted({event_id for alert in alerts for event_id in alert["event_ids"]})
     case["timeline"] = [
         {
             "id": event.id,
@@ -173,12 +248,16 @@ def case_detail(conn: sqlite3.Connection, case_id: str) -> Json | None:
             "source": event.source,
             "origin": event.origin,
             "product_event_type": event.parsed["action"],
+            "iam_changes": change_evidence(event),
             "udm": event.udm,
         }
         for event in (
             load_event(row)
-            for row in conn.execute("SELECT id,document FROM events ORDER BY timestamp,id")
-            if row["id"] in evidence
+            for row in conn.execute(
+                """SELECT document FROM events WHERE id IN (SELECT value FROM json_each(?))
+                   ORDER BY timestamp,id""",
+                (canonical(evidence),),
+            )
         )
     ]
     return case

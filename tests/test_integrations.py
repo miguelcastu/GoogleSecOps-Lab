@@ -73,6 +73,38 @@ def test_cloud_transaction_rolls_back_before_ack_when_response_invalid(tmp_path)
         assert conn.execute("SELECT count(*) FROM events").fetchone()[0] == 0
 
 
+def test_ack_transport_failure_recovers_without_duplicate_alert(tmp_path):
+    from secops_lab.iam_lab import demo_events
+    from secops_lab.storage import replay
+
+    db = tmp_path / "ack-recovery.sqlite"
+    received = []
+    for index, row in enumerate(demo_events()[:2]):
+        raw = row["raw"]
+        suffix = raw["logName"].split("/logs/", 1)[1]
+        raw["logName"] = "projects/gsl-pubsub-test/logs/" + suffix
+        if index == 0:
+            raw["protoPayload"]["resourceName"] = "projects/gsl-pubsub-test"
+        encoded = base64.b64encode(json.dumps(raw).encode()).decode()
+        received.append({"ackId": str(index), "message": {"data": encoded}})
+    session = Mock()
+    pulled = response({"receivedMessages": received})
+    session.post.side_effect = [pulled, OSError("ack transport unavailable"), pulled, response()]
+
+    with pytest.raises(OSError, match="ack transport"):
+        pull_once(db, "gsl-pubsub-test", 2, session)
+    with database(db) as conn:
+        assert replay(conn)["alerts_added"] == 2
+    assert pull_once(db, "gsl-pubsub-test", 2, session) == {
+        "accepted": 0,
+        "duplicate": 2,
+        "rejected": 0,
+    }
+    with database(db) as conn:
+        assert replay(conn)["alerts_added"] == 0
+        assert conn.execute("SELECT count(*) FROM alerts WHERE rule_id='GSL020'").fetchone()[0] == 1
+
+
 def test_chronicle_opt_in_and_verify(monkeypatch):
     monkeypatch.delenv("GSL_ENABLE_CHRONICLE", raising=False)
     with pytest.raises(ValueError, match="ENABLE_CHRONICLE"):

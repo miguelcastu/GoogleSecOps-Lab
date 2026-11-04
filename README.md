@@ -38,6 +38,15 @@ uv run --no-sync secops-lab dashboard
 
 Open [the local console](http://127.0.0.1:8765). Stop it with Ctrl+C. Reports are in **var/demo/** and the SQLite database is **var/lab.sqlite**. The scripts **scripts/bootstrap.ps1** and **scripts/bootstrap.sh** install dependencies and run the same demo on Windows and POSIX systems. The local runtime uses the Python standard library.
 
+## Investigate a sensitive IAM grant
+
+Run the IAM demo in a separate database. It compares an ordinary deployment with a sensitive role grant followed by activity from the beneficiary. The case links the grant and the observed Storage operation. The console also compares both detection strategies on 20 labeled synthetic scenarios. [IAM investigation guide](docs/iam-investigation.md)
+
+```sh
+uv run --no-sync secops-lab --db var/iam.sqlite iam-demo --out var/iam-demo
+uv run --no-sync secops-lab --db var/iam.sqlite dashboard --port 8766
+```
+
 ## Run a scenario and investigate
 
 ```sh

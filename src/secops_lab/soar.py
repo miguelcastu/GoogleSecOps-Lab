@@ -45,6 +45,8 @@ OFFLINE_IP = {
 
 
 def group_case(alert: Alert, events: list[Event]) -> str:
+    if alert.context.get("grant_event_id"):
+        return digest(["iam-investigation", alert.id])
     return digest(
         [
             alert.playbook,
